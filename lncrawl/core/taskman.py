@@ -107,7 +107,7 @@ class TaskManager(ABC):
         total=None,
         unit=None,
         disable=False,
-        timeout: float | None = None,
+        timeout: Optional[float] = None,
     ):
         if os.getenv("debug_mode"):
             disable = True
