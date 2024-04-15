@@ -1,6 +1,4 @@
 import logging
-import random
-import time
 from io import BytesIO
 
 from PIL import Image
@@ -10,7 +8,6 @@ from lncrawl.templates.browser.basic import BasicBrowserTemplate
 from seleniumbase import SB
 
 logger = logging.getLogger(__name__)
-search_url = "https://www.foxaholic.com/?s=%s&post_type=wp-manga"
 
 
 def open_turnstile_page(base, url):
