@@ -6,6 +6,7 @@ from urllib.parse import urlencode, urlparse
 
 from bs4 import BeautifulSoup, Tag
 from readability import Document
+from seleniumbase import SB
 
 from lncrawl.core.browser import EC
 from lncrawl.core.crawler import Crawler
@@ -146,7 +147,7 @@ class NovelupdatesTemplate(SearchableBrowserTemplate, ChapterOnlyBrowserTemplate
         chapter.url = response.url
         return self.parse_chapter_body(chapter, response.text)
 
-    def download_chapter_body_in_browser(self, chapter: Chapter) -> str:
+    def download_chapter_body_in_browser(self, chapter: Chapter, sb: SB = None) -> str:
         self.visit(chapter.url)
         for i in range(30):
             if not self.browser.current_url.startswith(chapter.url):

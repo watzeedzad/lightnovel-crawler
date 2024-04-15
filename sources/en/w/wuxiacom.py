@@ -4,6 +4,7 @@ import logging
 import re
 
 from pyease_grpc import RpcSession
+from seleniumbase import SB
 
 from lncrawl.core.exeptions import FallbackToBrowser
 from lncrawl.models import Chapter, Volume
@@ -264,7 +265,7 @@ class WuxiaComCrawler(BasicBrowserTemplate):
         # Close progress bar
         bar.close()
 
-    def download_chapter_body_in_browser(self, chapter: Chapter) -> str:
+    def download_chapter_body_in_browser(self, chapter: Chapter, sb: SB = None) -> str:
         # login
         if not self.start_download_chapter_body_in_browser:
             if self.bearer_token:

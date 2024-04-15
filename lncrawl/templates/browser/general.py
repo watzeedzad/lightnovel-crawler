@@ -2,6 +2,7 @@ import logging
 from typing import Generator, Union
 
 from bs4 import BeautifulSoup, Tag
+from seleniumbase import SB
 
 from ...core.exeptions import FallbackToBrowser
 from ...models import Chapter, Volume
@@ -88,7 +89,7 @@ class GeneralBrowserTemplate(BasicBrowserTemplate, GeneralSoupTemplate):
         body = self.select_chapter_body(soup)
         return self.parse_chapter_body(body)
 
-    def download_chapter_body_in_browser(self, chapter: Chapter) -> str:
+    def download_chapter_body_in_browser(self, chapter: Chapter, sb: SB = None) -> str:
         self.visit_chapter_page_in_browser(chapter)
         body = self.select_chapter_body_in_browser()
         return self.parse_chapter_body(body)

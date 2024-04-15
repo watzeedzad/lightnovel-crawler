@@ -11,6 +11,7 @@ files, therefore it is grouped using the first letter of the domain name.
 """
 import logging
 from typing import List
+from seleniumbase import SB
 
 from lncrawl.models.chapter import Chapter
 from lncrawl.models.search_result import SearchResult
@@ -102,7 +103,7 @@ class MyCrawlerName(BasicBrowserTemplate):
         pass
 
     # TODO: [REQUIRED] Download the chapter contents using the `self.browser`
-    def download_chapter_body_in_browser(self, chapter: Chapter) -> str:
+    def download_chapter_body_in_browser(self, chapter: Chapter, sb: SB = None) -> str:
         # Use the `chapter['url']` to get the chapter contents.
         # You can use `self.visit` to visit the chapter in browser tab.
         # There can be only one thread using the browser at a time.
