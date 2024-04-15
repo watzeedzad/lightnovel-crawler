@@ -1,19 +1,30 @@
-# -*- coding: utf-8 -*-
 import logging
+import random
+import time
+from io import BytesIO
 
-from bs4.element import Tag
+from PIL import Image
 
-import requests
-
-from lncrawl.core.crawler import Crawler
-from urllib.parse import urlparse
+from lncrawl.models import Chapter
+from lncrawl.templates.browser.basic import BasicBrowserTemplate
+from seleniumbase import SB
 
 logger = logging.getLogger(__name__)
 search_url = "https://www.foxaholic.com/?s=%s&post_type=wp-manga"
-# chapter_list_url = 'https://www.foxaholic.com/wp-admin/admin-ajax.php'
 
 
-class FoxaholicCrawler(Crawler):
+def open_turnstile_page(base, url):
+    # open web page using uc
+    base.driver.uc_open_with_reconnect(url, reconnect_time=3)
+
+
+def click_turnstile(base):
+    # do turnstile challenge
+    base.driver.switch_to_frame("iframe")
+    base.driver.uc_click("span.mark")
+
+
+class FoxaholicCrawler(BasicBrowserTemplate):
     base_url = [
         "https://foxaholic.com/",
         "https://www.foxaholic.com/",
@@ -24,115 +35,64 @@ class FoxaholicCrawler(Crawler):
     def initialize(self) -> None:
         self.init_executor(1)
 
-    def search_novel(self, query):
-        query = query.lower().replace(" ", "+")
-        soup = self.get_soup(search_url % query)
+    def read_novel_info_in_browser(self) -> None:
+        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless) as sb:
+            open_turnstile_page(sb, self.novel_url)
+            click_turnstile(sb)
 
-        results = []
-        for tab in soup.select(".c-tabs-item__content"):
-            a = tab.select_one(".post-title h3 a")
-            if not isinstance(a, Tag):
-                continue
-            latest = tab.select_one(".latest-chap .chapter a")
-            if isinstance(latest, Tag):
-                latest = latest.text.strip()
-            status = tab.select_one(".mg_release .summary-content a")
-            if isinstance(status, Tag):
-                status = "Status: " + status.text.strip()
-            results.append(
-                {
-                    "title": a.text.strip(),
-                    "url": self.absolute_url(a["href"]),
-                    "info": " | ".join(filter(None, [latest, status])),
-                }
+            # verify that page is loaded
+            sb.assert_element('.wp-manga-chapter.free-chap a', timeout=60)
+            # get bs4 from web page
+            soup = sb.get_beautiful_soup()
+
+            self.novel_title = soup.select_one('.post-title h1').text.strip()
+            logger.info("Novel title: %s", self.novel_title)
+
+            self.novel_cover = self.absolute_url(soup.select_one('.summary_image a img')['src'])
+            logger.info("Novel cover: %s", self.novel_cover)
+
+            self.novel_author = " ".join(
+                [
+                    a.text.strip()
+                    for a in soup.select('.author-content a[href]')
+                ]
             )
-        return results
+            logger.info("%s", self.novel_author)
 
-    def read_novel_info(self):
-        logger.debug("Visiting %s", self.novel_url)
-        soup = self.get_soup(self.novel_url)
+            for a in reversed(soup.select('.wp-manga-chapter.free-chap a')):
+                chap_id = len(self.chapters) + 1
+                vol_id = 1 + len(self.chapters) // 100
+                if chap_id % 100 == 1:
+                    self.volumes.append({"id": vol_id})
+                self.chapters.append(
+                    {
+                        "id": chap_id,
+                        "volume": vol_id,
+                        "title": a.text.strip(),
+                        "url": self.absolute_url(a['href']),
+                    }
+                )
 
-        possible_title = soup.select_one('meta[property="og:title"]')
-        assert possible_title, "No novel title"
-        self.novel_title = possible_title["content"]
-        logger.info("Novel title: %s", self.novel_title)
+    def download_chapter_body_in_browser(self, chapter: Chapter) -> str:
+        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless) as sb:
+            open_turnstile_page(sb, chapter['url'])
+            click_turnstile(sb)
 
-        self.novel_cover = self.absolute_url(
-            soup.select_one(".summary_image a img")["data-src"]
-        )
-        logger.info("Novel cover: %s", self.novel_cover)
+            # verify that page is loaded
+            sb.assert_element('.entry-content_wrap', timeout=60)
+            # get bs4 from web page
+            soup = sb.get_beautiful_soup()
 
-        self.novel_author = " ".join(
-            [
-                a.text.strip()
-                for a in soup.select('.author-content a[href*="novel-author"]')
-            ]
-        )
-        logger.info("%s", self.novel_author)
+            contents = soup.select_one('.entry-content_wrap')
+            return self.cleaner.extract_contents(contents)
 
-        if (
-            "18.foxaholic.com" in self.novel_url
-            or "global.foxaholic.com" in self.novel_url
-        ):
-            parsed_url = urlparse(self.novel_url)
-            current_base_url = "%s://%s" % (parsed_url.scheme, parsed_url.hostname)
+    def download_image(self, url, **kwargs):
+        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless) as sb:
+            open_turnstile_page(sb, url)
+            click_turnstile(sb)
 
-            novel_id = soup.select_one("#manga-chapters-holder")["data-id"]
-            get_chapter_data = {"action": "manga_get_chapters", "manga": novel_id}
+            # verify that page is loaded
+            sb.assert_element('img', timeout=60)
 
-            response = self.submit_form(
-                current_base_url + "/wp-admin/admin-ajax.php", data=get_chapter_data
-            )
-
-            soup = self.make_soup(response)
-
-        for a in reversed(soup.select(".wp-manga-chapter a")):
-            chap_id = len(self.chapters) + 1
-            vol_id = 1 + len(self.chapters) // 100
-            if chap_id % 100 == 1:
-                self.volumes.append({"id": vol_id})
-            self.chapters.append(
-                {
-                    "id": chap_id,
-                    "volume": vol_id,
-                    "title": a.text.strip(),
-                    "url": self.absolute_url(a["href"]),
-                }
-            )
-
-    def download_chapter_body(self, chapter):
-        soup = self.get_soup(chapter["url"])
-
-        # REMINDER : Some chapters have additional protection in the form of having the actual
-        # chapter url in the post. This selector might change frequently.
-
-        blocked_chapter = soup.select_one(".text-left").find(
-            lambda tag: tag.name == "a" and "Chapter" in tag.text
-        )
-        if blocked_chapter:
-            logger.info("Blocked chapter detected. Trying to bypass...")
-            soup = self.get_soup(blocked_chapter["href"])
-
-        contents = soup.select_one(".entry-content_wrap")
-
-        # all_imgs = soup.find_all('img')
-        # for img in all_imgs:
-        #     if img.has_attr('loading'):
-        #         src_url = img['src']
-        #         parent = img.parent
-        #         img.extract()
-        #         new_tag = soup.new_tag("img", src=src_url)
-        #         parent.append(new_tag)
-        return self.cleaner.extract_contents(contents)
-
-    def download_image(self, url):
-        logger.info("Foxaholic image: %s", url)
-        response = requests.get(
-            url,
-            verify=False,
-            allow_redirects=True,
-            headers={
-                "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.9"
-            },
-        )
-        return response.content
+            img = sb.find_element('img').screenshot_as_png
+            return Image.open(BytesIO(img))
