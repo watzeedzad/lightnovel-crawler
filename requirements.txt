@@ -24,7 +24,7 @@ webdriver-manager
 selenium>=3.141.0
 undetected-chromedriver>=3.5.3
 readability-lxml>=0.8.0,<1.0.0
-seleniumbase>=4.25.4
+seleniumbase>=4.25.4,<5.0.0
 
 # dev requirements
 wheel
@@ -32,7 +32,7 @@ black
 flake8
 tk-tools
 pyinstaller
-setuptools>=69.5.1
+setuptools~=69.5.1
 # cryptography<=3.3.2
 # cssutils>=1.0.0,<2.7.0
 # win_unicode_console~=0.5
