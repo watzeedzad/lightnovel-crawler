@@ -85,7 +85,7 @@ class BasicBrowserTemplate(Crawler):
             self.close_browser()
 
     def read_novel_info(self) -> None:
-        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless) as sb:
+        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless, maximize=True) as sb:
             try:
                 self.read_novel_info_in_scraper()
             except ScraperErrorGroup as e:
@@ -113,7 +113,7 @@ class BasicBrowserTemplate(Crawler):
         if not self.browser:
             return
 
-        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless) as sb:
+        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless, maximize=True) as sb:
             for chapter in self.progress_bar(chapters, desc="Chapters", unit="item"):
                 if not isinstance(chapter, Chapter) or chapter.success:
                     yield 1

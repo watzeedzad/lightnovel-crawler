@@ -2,23 +2,24 @@ import logging
 from io import BytesIO
 
 from PIL import Image
+from seleniumbase import SB
 
 from lncrawl.models import Chapter
 from lncrawl.templates.browser.basic import BasicBrowserTemplate
-from seleniumbase import SB
 
 logger = logging.getLogger(__name__)
 
 
 def open_turnstile_page(base, url):
     # open web page using uc
-    base.driver.uc_open_with_reconnect(url, reconnect_time=3)
+    base.driver.uc_open_with_reconnect(url, reconnect_time=5)
 
 
 def click_turnstile(base):
     # do turnstile challenge
-    base.driver.switch_to_frame("iframe")
-    base.driver.uc_click("span.mark")
+    if base.is_element_visible('.captcha-prompt iframe'):
+        base.driver.switch_to_frame('.captcha-prompt iframe')
+        base.driver.uc_click('span.mark', reconnect_time=5)
 
 
 class FoxaholicCrawler(BasicBrowserTemplate):
@@ -82,7 +83,7 @@ class FoxaholicCrawler(BasicBrowserTemplate):
         return self.cleaner.extract_contents(contents)
 
     def download_image(self, url, **kwargs):
-        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless) as sb:
+        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless, maximize=True) as sb:
             open_turnstile_page(sb, url)
             click_turnstile(sb)
 
