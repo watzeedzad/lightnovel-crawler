@@ -4,7 +4,6 @@ from io import BytesIO
 from typing import Generator, List, Optional
 
 from PIL import Image
-from seleniumbase import SB
 
 from ...core.browser import Browser, By
 from ...core.crawler import Crawler
@@ -85,18 +84,17 @@ class BasicBrowserTemplate(Crawler):
             self.close_browser()
 
     def read_novel_info(self) -> None:
-        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless, maximize=True) as sb:
-            try:
-                self.read_novel_info_in_scraper()
-            except ScraperErrorGroup as e:
-                if logger.isEnabledFor(logging.DEBUG):
-                    logger.exception("Failed in read novel info: %s", e)
-                self.init_browser()
-                self.volumes.clear()
-                self.chapters.clear()
-                self.read_novel_info_in_browser(sb)
-            finally:
-                self.close_browser()
+        try:
+            self.read_novel_info_in_scraper()
+        except ScraperErrorGroup as e:
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.exception("Failed in read novel info: %s", e)
+            self.init_browser()
+            self.volumes.clear()
+            self.chapters.clear()
+            self.read_novel_info_in_browser()
+        finally:
+            self.close_browser()
 
     def download_chapters(
         self,
@@ -113,23 +111,22 @@ class BasicBrowserTemplate(Crawler):
         if not self.browser:
             return
 
-        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless, maximize=True) as sb:
-            for chapter in self.progress_bar(chapters, desc="Chapters", unit="item"):
-                if not isinstance(chapter, Chapter) or chapter.success:
-                    yield 1
-                    continue
-                try:
-                    chapter.body = self.download_chapter_body_in_browser(chapter, sb)
-                    self.extract_chapter_images(chapter)
-                    chapter.success = True
-                except Exception as e:
-                    logger.error("Failed to get chapter: %s", e)
-                    chapter.body = ""
-                    chapter.success = False
-                    if isinstance(e, KeyboardInterrupt):
-                        break
-                finally:
-                    yield 1
+        for chapter in self.progress_bar(chapters, desc="Chapters", unit="item"):
+            if not isinstance(chapter, Chapter) or chapter.success:
+                yield 1
+                continue
+            try:
+                chapter.body = self.download_chapter_body_in_browser(chapter)
+                self.extract_chapter_images(chapter)
+                chapter.success = True
+            except Exception as e:
+                logger.error("Failed to get chapter: %s", e)
+                chapter.body = ""
+                chapter.success = False
+                if isinstance(e, KeyboardInterrupt):
+                    break
+            finally:
+                yield 1
 
         self.close_browser()
 
@@ -162,7 +159,7 @@ class BasicBrowserTemplate(Crawler):
         raise FallbackToBrowser()
 
     @abstractmethod
-    def read_novel_info_in_browser(self, sb: SB = None) -> None:
+    def read_novel_info_in_browser(self) -> None:
         """Read novel info with `self.browser`"""
         raise NotImplementedError()
 
@@ -174,6 +171,6 @@ class BasicBrowserTemplate(Crawler):
         raise FallbackToBrowser()
 
     @abstractmethod
-    def download_chapter_body_in_browser(self, chapter: Chapter, sb: SB = None) -> str:
+    def download_chapter_body_in_browser(self, chapter: Chapter) -> str:
         """Download the chapter contents using the `self.browser`"""
         raise NotImplementedError()

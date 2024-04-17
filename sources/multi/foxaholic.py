@@ -1,8 +1,10 @@
 import logging
+import os
 from io import BytesIO
 
 from PIL import Image
-from seleniumbase import SB
+from bs4 import BeautifulSoup
+from seleniumbase import Driver
 
 from lncrawl.models import Chapter
 from lncrawl.templates.browser.basic import BasicBrowserTemplate
@@ -11,18 +13,21 @@ logger = logging.getLogger(__name__)
 
 
 def open_turnstile_page(base, url):
+    base.reconnect(timeout=3)
     # open web page using uc
-    base.driver.uc_open_with_reconnect(url, reconnect_time=5)
+    base.uc_open_with_reconnect(url, reconnect_time=3)
 
 
 def click_turnstile(base):
+    base.reconnect(timeout=3)
     # do turnstile challenge
     if base.is_element_visible('.captcha-prompt iframe'):
-        base.driver.switch_to_frame('.captcha-prompt iframe')
-        base.driver.uc_click('span.mark', reconnect_time=5)
+        base.switch_to_frame('.captcha-prompt iframe')
+        base.uc_click('span.mark', reconnect_time=3)
 
 
 class FoxaholicCrawler(BasicBrowserTemplate):
+    driver = None
     base_url = [
         "https://foxaholic.com/",
         "https://www.foxaholic.com/",
@@ -31,16 +36,17 @@ class FoxaholicCrawler(BasicBrowserTemplate):
     ]
 
     def initialize(self) -> None:
+        self.driver = Driver(uc=True, headless=self.headless, headless2=self.headless, chromium_arg='--start-maximized')
         self.init_executor(1)
 
-    def read_novel_info_in_browser(self, sb: SB = None) -> None:
-        open_turnstile_page(sb, self.novel_url)
-        click_turnstile(sb)
+    def read_novel_info_in_browser(self) -> None:
+        open_turnstile_page(self.driver, self.novel_url)
+        click_turnstile(self.driver)
 
         # verify that page is loaded
-        sb.assert_element('.wp-manga-chapter.free-chap a', timeout=60)
+        self.driver.assert_element('.wp-manga-chapter.free-chap a', timeout=60)
         # get bs4 from web page
-        soup = sb.get_beautiful_soup()
+        soup = BeautifulSoup(self.driver.get_page_source(), 'html.parser')
 
         self.novel_title = soup.select_one('.post-title h1').text.strip()
         logger.info("Novel title: %s", self.novel_title)
@@ -70,25 +76,24 @@ class FoxaholicCrawler(BasicBrowserTemplate):
                 }
             )
 
-    def download_chapter_body_in_browser(self, chapter: Chapter, sb: SB = None) -> str:
-        open_turnstile_page(sb, chapter['url'])
-        click_turnstile(sb)
+    def download_chapter_body_in_browser(self, chapter: Chapter) -> str:
+        open_turnstile_page(self.driver, chapter['url'])
+        click_turnstile(self.driver)
 
         # verify that page is loaded
-        sb.assert_element('.entry-content_wrap', timeout=60)
+        self.driver.assert_element('.entry-content_wrap', timeout=60)
         # get bs4 from web page
-        soup = sb.get_beautiful_soup()
+        soup = BeautifulSoup(self.driver.get_page_source(), 'html.parser')
 
         contents = soup.select_one('.entry-content_wrap')
         return self.cleaner.extract_contents(contents)
 
-    def download_image(self, url, **kwargs):
-        with SB(uc=True, test=True, headless=self.headless, headless2=self.headless, maximize=True) as sb:
-            open_turnstile_page(sb, url)
-            click_turnstile(sb)
+    def download_image(self, url, **kwargs) -> Image:
+        open_turnstile_page(self.driver, url)
+        click_turnstile(self.driver)
 
-            # verify that page is loaded
-            sb.assert_element('img', timeout=60)
+        # verify that page is loaded
+        self.driver.assert_element('img', timeout=60)
 
-            img = sb.find_element('img').screenshot_as_png
-            return Image.open(BytesIO(img))
+        img = self.driver.find_element('img').screenshot_as_png
+        return Image.open(BytesIO(img))

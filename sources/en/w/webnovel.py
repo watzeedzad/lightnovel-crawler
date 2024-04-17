@@ -5,7 +5,6 @@ from time import time
 from urllib.parse import urlencode, urlparse
 
 from bs4 import BeautifulSoup
-from seleniumbase import SB
 
 from lncrawl.core.exeptions import FallbackToBrowser
 from lncrawl.models import Chapter, SearchResult
@@ -137,7 +136,7 @@ class WebnovelCrawler(BasicBrowserTemplate):
                 )
                 self.chapters.append(chap)
 
-    def download_chapter_body_in_browser(self, chapter: Chapter, sb: SB = None) -> str:
+    def download_chapter_body_in_browser(self, chapter: Chapter) -> str:
         path = urlparse(chapter.url).path.strip("/")
         self.visit(f"{self.home_url}{path}")
         self.browser.wait(f"j_chapter_{chapter.cid}", By.CLASS_NAME)
