@@ -89,4 +89,4 @@ class MangaStreamTemplate(SearchableBrowserTemplate, OptionalVolumeBrowserTempla
 
     def visit_chapter_page_in_browser(self, chapter: Chapter) -> None:
         self.visit(chapter.url)
-        self.browser.wait("#readernovel, #readerarea, .entry-content,.mainholder")
+        self.browser.wait("#readernovel, #readerarea, .entry-content,.mainholder, img.ts-main-image.lazy.loaded")

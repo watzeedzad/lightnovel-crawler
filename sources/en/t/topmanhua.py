@@ -9,7 +9,10 @@ chapter_list_url = "https://www.topmanhua.com/wp-admin/admin-ajax.php"
 
 class TopManhua(Crawler):
     has_manga = True
-    base_url = "https://www.topmanhua.com/"
+    base_url = [
+        "https://www.topmanhua.com/",
+        "https://manhuatop.org/"
+    ]
 
     def search_novel(self, query):
         query = query.lower().replace(" ", "+")

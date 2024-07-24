@@ -7,3 +7,6 @@ class LightnovelworldComCrawler(NovelPubTemplate):
     base_url = [
         "https://www.lightnovelworld.com/",
     ]
+
+    def initialize(self) -> None:
+        self.init_executor(1)
