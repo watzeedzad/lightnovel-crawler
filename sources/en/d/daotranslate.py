@@ -10,11 +10,12 @@ search_url = "https://daotranslate.us/?s=%s"
 
 
 class DaoTranslateCrawler(Crawler):
-    base_url = ["https://daotranslate.com/", "https://daotranslate.us/"]
-    has_mtl = True
+    base_url = ["https://daotranslate.com/", "https://daotranslate.us/", "https://oredoujin.com"]
+    # has_mtl = True
+    has_manga = True
 
     def initialize(self):
-        self.init_executor(ratelimit=1.1)
+        self.init_executor(1, ratelimit=1.1)
 
     def search_novel(self, query):
         query = query.lower().replace(" ", "+")
@@ -49,7 +50,7 @@ class DaoTranslateCrawler(Crawler):
         logger.debug("Visiting %s", self.novel_url)
         soup = self.get_soup(self.novel_url)
 
-        self.novel_title = soup.select_one('.infox h1').text.strip()
+        self.novel_title = soup.select_one('.entry-title').text.strip()
         logger.info('Novel title: %s', self.novel_title)
 
         possible_image = soup.select_one(".thumbook .thumb img")
