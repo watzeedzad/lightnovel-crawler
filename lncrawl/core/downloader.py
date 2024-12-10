@@ -115,7 +115,7 @@ def _fetch_content_image(app, url, image_file: Path):
                     img.convert("RGBA").convert("RGB")
                 else:
                     img = img.convert("RGB")
-            img.save(image_file.as_posix(), "JPEG", optimized=True)
+            img.save(image_file.as_posix(), "JPEG", optimized=True, quality=95)
             img.close()
             logger.debug("Saved image: %s", image_file)
         finally:
