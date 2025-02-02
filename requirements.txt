@@ -24,6 +24,7 @@ webdriver-manager
 selenium>=3.141.0
 undetected-chromedriver>=3.5.3
 readability-lxml>=0.8.0,<1.0.0
+nodriver>=0.39,<=1.0.0
 
 # dev requirements
 wheel
