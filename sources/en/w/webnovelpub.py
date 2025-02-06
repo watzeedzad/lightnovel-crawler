@@ -10,4 +10,4 @@ class WebnovelpubCrawler(NovelPubTemplate):
     ]
 
     def initialize(self) -> None:
-        self.init_executor(1)
+        self.init_executor(1, ratelimit=-0.3)
