@@ -35,6 +35,7 @@ class FoxaholicCrawler(BasicBrowserTemplate):
     ]
 
     def initialize(self) -> None:
+        self.cleaner.bad_css.update([".foxaholic-bidgear-1x1"])
         self.driver = Driver(uc=True, headless=self.headless, headless2=self.headless, chromium_arg='--start-maximized')
         self.init_executor(1)
 
