@@ -53,16 +53,6 @@ def force_replace_old(self):
     if args.suppress:
         return False
 
-    # answer = prompt([
-    #     {
-    #         'type': 'confirm',
-    #         'name': 'force',
-    #         'message': 'Detected existing folder. Replace it?',
-    #         'default': False,
-    #     },
-    # ])
-    # return answer['force']
-
     answer = prompt(
         [
             {
