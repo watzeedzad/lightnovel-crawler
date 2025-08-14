@@ -52,20 +52,28 @@ export const NovelDetailsCard: React.FC<{ novel?: Novel }> = ({ novel }) => {
   return (
     <Card
       variant="outlined"
+      styles={{
+        title: {
+          padding: '8px 0',
+          marginRight: 10,
+        },
+      }}
       title={
-        <Space>
-          <Avatar src={faviconLink} />
-          <Typography.Text style={{ fontSize: '24px' }}>
+        <Flex vertical>
+          <Space size="small" style={{ marginLeft: -5 }}>
+            <Avatar src={faviconLink} size={24} />
+            <Typography.Text type="secondary" style={{ fontSize: '18px' }}>
+              {domainName}
+            </Typography.Text>
+          </Space>
+          <Typography.Text style={{ fontSize: '24px', whiteSpace: 'wrap' }}>
             {location.pathname === `/novel/${novel.id}` ? (
               novel.title
             ) : (
               <Link to={`/novel/${novel.id}`}>{novel.title}</Link>
             )}
           </Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: '20px' }}>
-            ({domainName})
-          </Typography.Text>
-        </Space>
+        </Flex>
       }
       extra={[
         <Tooltip title={'Original source'}>

@@ -2,9 +2,11 @@ import type { Job } from '@/types';
 import { stringifyError } from '@/utils/errors';
 import { SendOutlined } from '@ant-design/icons';
 import { Alert, Button, Form, Grid, Input, Typography } from 'antd';
+import type { TextAreaProps } from 'antd/es/input';
 import axios from 'axios';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TidyURL } from 'tidy-url';
 
 export const RequestNovelCard: React.FC<any> = () => {
   const { lg } = Grid.useBreakpoint();
@@ -35,6 +37,17 @@ export const RequestNovelCard: React.FC<any> = () => {
     }
   };
 
+  const onInput: TextAreaProps['onInput'] = (e) => {
+    try {
+      const value = e.currentTarget.value;
+      const trimmed = value.replace(/[\n\r\t ]+/g, '');
+      const cleaned = TidyURL.clean(trimmed).url;
+      if (cleaned !== value) {
+        e.currentTarget.value = cleaned;
+      }
+    } catch {}
+  };
+
   return (
     <Form
       form={form}
@@ -63,13 +76,7 @@ export const RequestNovelCard: React.FC<any> = () => {
             autoFocus
             placeholder="Enter novel page URL"
             autoComplete="novel-page-url"
-            onInput={(e) => {
-              const value = e.currentTarget.value;
-              const trimmed = value.replace(/[\n\r\t ]+/g, '');
-              if (trimmed !== value) {
-                e.currentTarget.value = trimmed;
-              }
-            }}
+            onInput={onInput}
             style={{
               resize: 'none',
               fontWeight: '800',

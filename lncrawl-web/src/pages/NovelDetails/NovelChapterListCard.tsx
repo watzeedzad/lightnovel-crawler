@@ -6,6 +6,9 @@ import { Link } from 'react-router-dom';
 export const NovelTableOfContentsCard: React.FC<{
   toc: Volume[];
 }> = ({ toc }) => {
+  if (!toc.length) {
+    return null;
+  }
   return (
     <Card title="Table of Contents" styles={{ body: { padding: 10 } }}>
       <Collapse
