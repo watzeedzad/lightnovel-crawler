@@ -11,8 +11,9 @@ export const appTheme: ThemeConfig = {
     Menu: {
       iconSize: 16,
       collapsedIconSize: 14,
-      itemHoverBg: 'transparent',
+      itemHoverBg: '#1d1d1d',
       colorPrimary: '#a9d134',
+      subMenuItemBg: 'transparent',
     },
     Typography: {
       colorLink: '#8dc5f8',

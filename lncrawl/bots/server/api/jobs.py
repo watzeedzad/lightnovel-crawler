@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Form, Path, Query, Security
 from pydantic import HttpUrl
 
 from ..context import ServerContext
-from ..models.enums import JobPriority, JobStatus
+from ..models.enums import JobPriority, JobStatus, RunState
 from ..models.job import Job, JobDetail
 from ..models.novel import Artifact, Novel
 from ..models.pagination import Paginated
@@ -25,6 +25,7 @@ def list_jobs(
     user_id: Optional[str] = Query(default=None),
     novel_id: Optional[str] = Query(default=None),
     status: Optional[JobStatus] = Query(default=None),
+    run_state: Optional[RunState] = Query(default=None),
     priority: Optional[JobPriority] = Query(default=None),
 ) -> Paginated[Job]:
     return ctx.jobs.list(
@@ -33,6 +34,7 @@ def list_jobs(
         sort_by=sort_by,
         order=order,
         status=status,
+        run_state=run_state,
         priority=priority,
         user_id=user_id,
         novel_id=novel_id,

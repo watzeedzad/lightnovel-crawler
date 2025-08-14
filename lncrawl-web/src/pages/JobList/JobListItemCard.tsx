@@ -36,7 +36,7 @@ export const JobListItemCard: React.FC<{
             </Typography.Paragraph>
 
             <Space style={{ marginTop: 5 }}>
-              <JobStatusTag value={job.status} completed={job.run_state} />
+              <JobStatusTag value={job.status} state={job.run_state} />
               <Tag icon={<ClockCircleOutlined />} color="default">
                 {formatDate(job.created_at)}
               </Tag>

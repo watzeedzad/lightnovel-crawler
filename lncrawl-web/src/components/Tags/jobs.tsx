@@ -38,8 +38,8 @@ export const JobPriorityTag: React.FC<{ value: JobPriority }> = ({ value }) => {
 
 export const JobStatusTag: React.FC<{
   value: JobStatus;
-  completed: RunState;
-}> = ({ value, completed }) => {
+  state: RunState;
+}> = ({ value, state }) => {
   switch (value) {
     case JobStatus.PENDING:
       return (
@@ -54,7 +54,7 @@ export const JobStatusTag: React.FC<{
         </Tag>
       );
     case JobStatus.COMPLETED: {
-      switch (completed) {
+      switch (state) {
         case RunState.SUCCESS:
           return (
             <Tag icon={<CheckOutlined />} color="orange" style={{ margin: 0 }}>

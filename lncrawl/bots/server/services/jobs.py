@@ -1,7 +1,7 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import HttpUrl
-from sqlmodel import asc, desc, func, select
+from sqlmodel import and_, asc, desc, func, select
 
 from ..context import ServerContext
 from ..exceptions import AppErrors
@@ -28,38 +28,48 @@ class JobService:
         novel_id: Optional[str] = None,
         priority: Optional[JobPriority] = None,
         status: Optional[JobStatus] = None,
+        run_state: Optional[RunState] = None,
     ) -> Paginated[Job]:
         with self._db.session() as sess:
             stmt = select(Job)
+            cnt = select(func.count()).select_from(Job)
 
             # Apply filters
-            if user_id:
-                stmt = stmt.where(Job.user_id == user_id)
-            if novel_id:
-                stmt = stmt.where(Job.novel_id == novel_id)
-            if status:
-                stmt = stmt.where(Job.status == status)
-            if priority:
-                stmt = stmt.where(Job.priority == priority)
+            conditions: List[Any] = []
+            if user_id is not None:
+                conditions.append(Job.user_id == user_id)
+            if novel_id is not None:
+                conditions.append(Job.novel_id == novel_id)
+            if status is not None:
+                conditions.append(Job.status == status)
+            if run_state is not None:
+                conditions.append(Job.run_state == run_state)
+            if priority is not None:
+                conditions.append(Job.priority == priority)
+
+            if conditions:
+                cnd = and_(*conditions)
+                stmt = stmt.where(cnd)
+                cnt = cnt.where(cnd)
 
             # Apply sorting
             sort_column = getattr(Job, sort_by, None)
             if sort_column is None:
                 raise AppErrors.sort_column_is_none
+            order_fn = desc if order == "desc" else asc
+            stmt = stmt.order_by(order_fn(sort_column))
 
-            if order == "desc":
-                stmt = stmt.order_by(desc(sort_column))
-            else:
-                stmt = stmt.order_by(asc(sort_column))
+            # Apply pagination
+            stmt = stmt.offset(offset).limit(limit)
 
-            jobs = sess.exec(stmt.offset(offset).limit(limit)).all()
-            total = sess.exec(select(func.count()).select_from(Job)).one()
+            total = sess.exec(cnt).one()
+            items = sess.exec(stmt).all()
 
             return Paginated(
                 total=total,
                 offset=offset,
                 limit=limit,
-                items=list(jobs),
+                items=list(items),
             )
 
     async def create(self, url: HttpUrl, user: User):

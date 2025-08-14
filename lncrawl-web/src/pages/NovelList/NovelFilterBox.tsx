@@ -1,10 +1,9 @@
 import { Flex, Input } from 'antd';
 import { type NovelListHook } from './hooks';
 
-export const NovelFilterBox: React.FC<{
-  initialSearch: NovelListHook['search'];
-  updateParams: NovelListHook['updateParams'];
-}> = ({ initialSearch, updateParams }) => {
+export const NovelFilterBox: React.FC<
+  Pick<NovelListHook, 'search' | 'updateParams'>
+> = ({ search: initialSearch, updateParams }) => {
   return (
     <Flex align="center">
       <Input.Search

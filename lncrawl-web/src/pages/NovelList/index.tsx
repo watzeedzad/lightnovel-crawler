@@ -54,10 +54,7 @@ export const NovelListPage: React.FC<any> = () => {
 
       <Divider size="small" />
 
-      <NovelFilterBox
-        initialSearch={initialSearch}
-        updateParams={updateParams}
-      />
+      <NovelFilterBox search={initialSearch} updateParams={updateParams} />
 
       <Divider size="small" />
 

@@ -31,7 +31,7 @@ export const JobDetailsCard: React.FC<{ job: Job }> = ({ job }) => {
       </Typography.Title>
 
       <Flex wrap align="center" gap={5}>
-        <JobStatusTag value={job.status} completed={job.run_state} />
+        <JobStatusTag value={job.status} state={job.run_state} />
         <JobPriorityTag value={job.priority} />
       </Flex>
 

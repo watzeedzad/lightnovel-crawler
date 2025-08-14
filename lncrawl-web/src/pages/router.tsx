@@ -1,6 +1,6 @@
+import { MainLayout } from '@/components/Layout';
 import { Navigate, type RouteObject } from 'react-router-dom';
 
-import { MainLayout } from '@/components/Layout';
 import { JobDetailsPage } from './JobDetails';
 import { JobListPage } from './JobList';
 import { LoginPage } from './Login';
