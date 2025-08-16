@@ -13,7 +13,7 @@ from .runner import microtask
 
 logger = logging.getLogger(__name__)
 
-CONCURRENCY = 2
+CONCURRENCY = 4
 
 
 class JobScheduler:
