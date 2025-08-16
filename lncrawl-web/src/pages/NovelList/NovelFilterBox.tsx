@@ -8,7 +8,7 @@ export const NovelFilterBox: React.FC<
     <Flex align="center">
       <Input.Search
         defaultValue={initialSearch}
-        onSearch={(search) => updateParams({ search, page: 0 })}
+        onSearch={(search) => updateParams({ search, page: 1 })}
         placeholder="Search novels"
         allowClear
         size="large"

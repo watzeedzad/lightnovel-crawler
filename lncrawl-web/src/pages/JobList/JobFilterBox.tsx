@@ -11,7 +11,7 @@ export const JobFilterBox: React.FC<
       <Select
         allowClear
         defaultValue={status || JobStatusFilterParams[0].value}
-        onChange={(status) => updateParams({ status })}
+        onChange={(status) => updateParams({ status, page: 1 })}
         placeholder="Filter by Status"
         style={{ minWidth: 150 }}
         options={JobStatusFilterParams}
