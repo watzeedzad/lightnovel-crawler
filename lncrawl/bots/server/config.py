@@ -69,6 +69,16 @@ class App:
         '''time (seconds) to sleep before starting next job'''
         return int(env('RUNNER_COOLDOWN_IN_SECONDS', 5))
 
+    @cached_property
+    def cleaner_cooldown(self) -> int:
+        '''time (seconds) to sleep before starting next cleanup'''
+        return int(env('CLEANER_COOLDOWN_IN_SECONDS', 6 * 3600))
+
+    @cached_property
+    def disk_size_limit(self) -> int:
+        '''maximum output folder size in bytes'''
+        return int(env('DISK_SIZE_LIMIT_IN_MB', 0)) * 1024 * 1024
+
 
 class Mail:
     @cached_property
