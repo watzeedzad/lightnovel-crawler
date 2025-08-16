@@ -7,7 +7,6 @@ from sqlmodel import asc, desc, or_, select
 
 from ..context import ServerContext
 from ..models.job import Job, JobRunnerHistoryItem, JobStatus, RunState
-from ..utils.file_tools import folder_size, format_size
 from ..utils.time_utils import current_timestamp
 from .cleaner import microtask as cleaner_task
 from .runner import microtask
@@ -144,23 +143,11 @@ class JobScheduler:
         if "cleaner" in self.threads:
             return
 
-        # check if cleaner is enabled
-        size_limit = self.ctx.config.app.disk_size_limit
-        if size_limit <= 0:
-            return
-
         # skip if cleaner has run recently
         timeout = self.ctx.config.app.cleaner_cooldown * 1000
         if current_timestamp() - self.last_cleanup_ts < timeout:
             return
         self.last_cleanup_ts = current_timestamp()
-
-        # skip if output folder size is within limit
-        folder = self.ctx.config.app.output_path
-        current_size = folder_size(folder)
-        logger.info(f"Current folder size: {format_size(current_size)}")
-        if current_size < size_limit:
-            return
 
         # create and start threads
         t = Thread(
