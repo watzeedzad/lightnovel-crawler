@@ -55,7 +55,7 @@ export const UserListPage: React.FC<any> = () => {
       <Flex align="center">
         <Input.Search
           defaultValue={initialSearch}
-          onSearch={(search) => updateParams({ search, page: 0 })}
+          onSearch={(search) => updateParams({ search, page: 1 })}
           placeholder="Find users"
           allowClear
           size="large"
