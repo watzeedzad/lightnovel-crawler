@@ -8,8 +8,6 @@ from pathlib import Path
 from threading import Event
 from typing import List
 
-from PIL import Image
-
 from ..utils.imgen import generate_cover_image
 
 logger = logging.getLogger(__name__)
