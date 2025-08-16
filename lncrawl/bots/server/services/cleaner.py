@@ -3,7 +3,7 @@ import shutil
 import os
 from threading import Event
 
-from sqlmodel import asc, select, true
+from sqlmodel import asc, select, true, and_
 
 from ..context import ServerContext
 from ..models.novel import Artifact, Novel
@@ -18,6 +18,7 @@ def microtask(signal=Event()) -> None:
     sess = ctx.db.session()
     output_folder = ctx.config.app.output_path
     size_limit = ctx.config.app.disk_size_limit
+    cutoff = current_timestamp() - 24 * 3600
 
     logger.info("=== Cleanup begin ===")
     try:
@@ -25,7 +26,12 @@ def microtask(signal=Event()) -> None:
         logger.info('Cleaning up orphan novels...')
         for novel in sess.exec(
             select(Novel)
-            .where(Novel.orphan == true())
+            .where(
+                and_(
+                    Novel.orphan == true(),
+                    Novel.created_at < cutoff,
+                )
+            )
         ).all():
             output = novel.extra.get('output_path')
             if output:
@@ -57,7 +63,6 @@ def microtask(signal=Event()) -> None:
 
         # Keep deleting novels to reach target disk size limit
         logger.info('Deleting folders to free up space...')
-        cutoff = current_timestamp() - 24 * 3600
         for novel in sess.exec(
             select(Novel)
             .where(Novel.updated_at < cutoff)
