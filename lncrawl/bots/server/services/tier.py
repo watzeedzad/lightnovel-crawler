@@ -26,12 +26,13 @@ ENABLED_FORMATS = {
     UserTier.BASIC: [
         OutputFormat.json,
         OutputFormat.epub,
+        OutputFormat.text,
     ],
     UserTier.PREMIUM: [
         OutputFormat.json,
         OutputFormat.epub,
         OutputFormat.mobi,
-        OutputFormat.fb2,
+        OutputFormat.text,
     ],
     UserTier.VIP: [
         OutputFormat.json,
