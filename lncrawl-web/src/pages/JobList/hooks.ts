@@ -120,7 +120,7 @@ export function useJobList(autoRefresh: boolean = true) {
           JobStatusFilterParams.findIndex((v) => v.value === updates.status) > 0
         ) {
           next.set('status', updates.status);
-        } else {
+        } else if (typeof updates.status !== 'undefined') {
           next.delete('status');
         }
         return next;
