@@ -1,15 +1,13 @@
 import base64
 import logging
 import os
-import random
 import re
-import ssl
 from io import BytesIO
 from typing import Any, Callable, Dict, MutableMapping, Optional, Tuple, Union
 from urllib.parse import ParseResult, urlparse
 
 from bs4 import BeautifulSoup
-from cloudscraper import CloudScraper, User_Agent  # type:ignore
+from ..cloudscraper import create_scraper
 from PIL import Image, UnidentifiedImageError
 from requests import Response, Session
 from requests.exceptions import ProxyError
@@ -17,8 +15,6 @@ from requests.structures import CaseInsensitiveDict
 from tenacity import (RetryCallState, retry, retry_if_exception_type,
                       stop_after_attempt, wait_random_exponential)
 
-from ..assets.user_agents import user_agents
-from ..utils.ssl_no_verify import no_ssl_verification
 from .exeptions import RetryErrorGroup
 from .proxy import get_a_proxy, remove_faulty_proxies
 from .soup import SoupMaker
@@ -61,7 +57,6 @@ class Scraper(TaskManager, SoupMaker):
         self.use_proxy = os.getenv("use_proxy")
 
         self.init_scraper()
-        self.change_user_agent()
         self.init_parser(parser)
         self.init_executor(workers)
 
@@ -78,15 +73,37 @@ class Scraper(TaskManager, SoupMaker):
     def init_scraper(self, session: Optional[Session] = None):
         """Check for option: https://github.com/VeNoMouS/cloudscraper"""
         try:
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            self.scraper = CloudScraper.create_scraper(
-                session,
-                # debug=True,
-                # delay=10,
-                ssl_context=ctx,
-                # interpreter="nodejs",
+            # OPTIMAL CONFIGURATION for preventing your specific 403 issues
+            self.scraper = create_scraper(
+                # debug=True,  # Enable for monitoring (disable in production)
+
+                # KEY SETTINGS to prevent 403 errors
+                min_request_interval=2.5,      # CRITICAL: Prevents TLS blocking
+                max_concurrent_requests=1,     # CRITICAL: Prevents concurrent conflicts
+                rotate_tls_ciphers=True,       # CRITICAL: Avoids cipher detection
+
+                # Enhanced protection
+                auto_refresh_on_403=True,      # Auto-recover from 403 errors
+                max_403_retries=3,             # Max retry attempts
+                session_refresh_interval=900,  # Session refresh time in seconds
+
+                # Optimized stealth mode
+                enable_stealth=True,
+                stealth_options={
+                    'min_delay': 1.0,          # Reasonable delays
+                    'max_delay': 3.0,
+                    'human_like_delays': True,
+                    'randomize_headers': True,
+                    'browser_quirks': True
+                },
+
+                # User agent filtering
+                browser={
+                    'browser': 'chrome',
+                    'platform': 'windows',
+                    'desktop': True,
+                    'mobile': False,
+                },
             )
         except Exception:
             logger.exception("Failed to initialize cloudscraper")
@@ -123,7 +140,6 @@ class Scraper(TaskManager, SoupMaker):
         headers = CaseInsensitiveDict(headers)
         headers.setdefault("Origin", self.home_url.strip("/"))
         headers.setdefault("Referer", self.last_soup_url or self.home_url)
-        headers.setdefault("User-Agent", self.user_agent)
 
         def _after_retry(retry_state: RetryCallState):
             future = retry_state.outcome
@@ -144,16 +160,14 @@ class Scraper(TaskManager, SoupMaker):
             reraise=True,
         )
         def _do_request():
-            with self.domain_gate(_parsed.hostname):
-                with no_ssl_verification():
-                    response = method_call(
-                        url,
-                        *args,
-                        **kwargs,
-                        headers=headers,
-                    )
-                    response.raise_for_status()
-                    response.encoding = "utf8"
+            response = method_call(
+                url,
+                *args,
+                **kwargs,
+                headers=headers,
+            )
+            response.raise_for_status()
+            response.encoding = "utf8"
 
             self.cookies.update({x.name: x.value for x in response.cookies})
             return response
@@ -208,16 +222,6 @@ class Scraper(TaskManager, SoupMaker):
         if page_url:
             return page_url.strip("/") + "/" + url
         return self.home_url + url
-
-    def change_user_agent(self):
-        self.user_agent = random.choice(user_agents)
-        if isinstance(self.scraper, CloudScraper):
-            self.scraper.user_agent = User_Agent(
-                allow_brotli=self.scraper.allow_brotli,
-                browser={"custom": self.user_agent},
-            )
-        elif isinstance(self.scraper, Session):
-            self.set_header("User-Agent", self.user_agent)
 
     # ------------------------------------------------------------------------- #
     # Downloaders

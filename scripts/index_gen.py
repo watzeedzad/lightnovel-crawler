@@ -18,14 +18,9 @@ from typing import Any, Dict, List
 from urllib.parse import quote_plus, unquote_plus
 
 try:
-    import cloudscraper  # type:ignore
-except ImportError:
-    print("cloudscraper not found")
-    exit(1)
-
-try:
     path = os.path.realpath(os.path.abspath(__file__))
     sys.path.insert(0, os.path.dirname(os.path.dirname(path)))
+    from lncrawl import cloudscraper
     from lncrawl.assets.languages import language_codes
     from lncrawl.core.crawler import Crawler
 except ImportError:
