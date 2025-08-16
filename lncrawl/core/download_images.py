@@ -8,6 +8,8 @@ from pathlib import Path
 from threading import Event
 from typing import List
 
+from PIL import Image
+
 from ..utils.imgen import generate_cover_image
 
 logger = logging.getLogger(__name__)
@@ -20,15 +22,17 @@ def fetch_chapter_images(app, signal=Event()):
     def _fetch_content_image(url: str, image_file: Path):
         assert app.crawler
         img = app.crawler.download_image(url)
-        image_file.parent.mkdir(parents=True, exist_ok=True)
-        if img.mode not in ("L", "RGB", "YCbCr", "RGBX"):
-            if img.mode == "RGBa":
-                # RGBa -> RGB isn't supported so we go through RGBA first
-                img.convert("RGBA").convert("RGB")
-            else:
-                img = img.convert("RGB")
-        img.save(image_file.as_posix(), "JPEG", optimized=True)
-        img.close()
+        try:
+            if img.mode not in ("L", "RGB", "YCbCr", "RGBX"):
+                if img.mode == "RGBa":
+                    img = img.convert("RGBA").convert("RGB")
+                else:
+                    img = img.convert("RGB")
+            image_file.parent.mkdir(parents=True, exist_ok=True)
+            img.save(image_file.as_posix(), "JPEG", optimized=True)
+        finally:
+            img.close()
+
         logger.debug("Saved image: %s", image_file)
 
     def _fetch_cover_image(cover_url: str):

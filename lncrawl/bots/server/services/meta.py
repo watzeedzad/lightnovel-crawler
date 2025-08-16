@@ -238,9 +238,10 @@ class MetadataService:
             with Image.open(io.BytesIO(response.content)) as img:
                 if img.mode not in ("L", "RGB", "YCbCr", "RGBX"):
                     if img.mode == "RGBa":
-                        img.convert("RGBA").convert("RGB")
+                        img = img.convert("RGBA").convert("RGB")
                     else:
-                        img.convert("RGB")
+                        img = img.convert("RGB")
+                file_path.parent.mkdir(parents=True, exist_ok=True)
                 img.save(file_path.as_posix(), "JPEG", optimized=True)
 
         return FileResponse(
