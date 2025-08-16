@@ -18,7 +18,7 @@ def microtask(signal=Event()) -> None:
     sess = ctx.db.session()
     output_folder = ctx.config.app.output_path
     size_limit = ctx.config.app.disk_size_limit
-    cutoff = current_timestamp() - 24 * 3600
+    cutoff = current_timestamp() - 24 * 3600 * 1000
 
     logger.info("=== Cleanup begin ===")
     try:
@@ -42,15 +42,15 @@ def microtask(signal=Event()) -> None:
             return
 
         # Delete all unavailable artifacts
-        logger.info('Cleaning up unavailable artifacts...')
-        for artifact in sess.exec(
-            select(Artifact)
-        ).all():
-            if not artifact.is_available:
-                sess.delete(artifact)
-                sess.commit()
-        if signal.is_set():
-            return
+        # logger.info('Cleaning up unavailable artifacts...')
+        # for artifact in sess.exec(
+        #     select(Artifact)
+        # ).all():
+        #     if not artifact.is_available:
+        #        sess.delete(artifact)
+        #        sess.commit()
+        # if signal.is_set():
+        #    return
 
         # check if cleaner is enabled
         if size_limit <= 0:
