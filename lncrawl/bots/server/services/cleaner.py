@@ -6,6 +6,7 @@ from threading import Event
 from sqlmodel import asc, select, true, and_
 
 from ..context import ServerContext
+from ..models.job import Job, RunState
 from ..models.novel import Artifact, Novel
 from ..utils.file_tools import folder_size, format_size
 from ..utils.time_utils import current_timestamp
@@ -18,10 +19,26 @@ def microtask(signal=Event()) -> None:
     sess = ctx.db.session()
     output_folder = ctx.config.app.output_path
     size_limit = ctx.config.app.disk_size_limit
-    cutoff = current_timestamp() - 24 * 3600 * 1000
+    cutoff = current_timestamp() - 24 * 3600 * 1000  # 1 day
 
     logger.info("=== Cleanup begin ===")
     try:
+        # Delete canceled jobs
+        logger.info('Cleaning up canceled jobs...')
+        for job in sess.exec(
+            select(Job)
+            .where(
+                and_(
+                    Job.created_at < cutoff,
+                    Job.run_state == RunState.CANCELED,
+                )
+            )
+        ).all():
+            sess.delete(job)
+        sess.commit()
+        if signal.is_set():
+            return
+
         # Delete all orphan novels
         logger.info('Cleaning up orphan novels...')
         for novel in sess.exec(
@@ -37,20 +54,23 @@ def microtask(signal=Event()) -> None:
             if output:
                 shutil.rmtree(output, ignore_errors=True)
             sess.delete(novel)
-            sess.commit()
+        sess.commit()
         if signal.is_set():
             return
 
         # Delete all unavailable artifacts
-        # logger.info('Cleaning up unavailable artifacts...')
-        # for artifact in sess.exec(
-        #     select(Artifact)
-        # ).all():
-        #     if not artifact.is_available:
-        #        sess.delete(artifact)
-        #        sess.commit()
-        # if signal.is_set():
-        #    return
+        logger.info('Cleaning up unavailable artifacts...')
+        for artifact in sess.exec(
+            select(Artifact)
+            .where(
+                Artifact.created_at < cutoff,
+            )
+        ).all():
+            if not artifact.is_available:
+                sess.delete(artifact)
+        sess.commit()
+        if signal.is_set():
+            return
 
         # check if cleaner is enabled
         if size_limit <= 0:

@@ -40,7 +40,7 @@ class JobScheduler:
         self.signal = Event()
         Thread(
             target=self.run,
-            args=(self.signal,),
+            args=[self.signal],
             daemon=True,
         ).start()
 

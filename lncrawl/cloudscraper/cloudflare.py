@@ -1,41 +1,18 @@
 # Cloudflare V1
 
+import html
 import re
 import sys
 import time
-
-from copy import deepcopy
 from collections import OrderedDict
-
-# ------------------------------------------------------------------------------- #
-
-try:
-    from HTMLParser import HTMLParser
-except ImportError:
-    if sys.version_info >= (3, 4):
-        import html
-    else:
-        from html.parser import HTMLParser
-
-try:
-    from urlparse import urlparse, urljoin
-except ImportError:
-    from urllib.parse import urlparse, urljoin
-
-# ------------------------------------------------------------------------------- #
-
-from .exceptions import (
-    CloudflareCode1020,
-    CloudflareIUAMError,
-    CloudflareSolveError,
-    CloudflareChallengeError,
-    CloudflareCaptchaError,
-    CloudflareCaptchaProvider
-)
-
-# ------------------------------------------------------------------------------- #
+from copy import deepcopy
+from urllib.parse import urljoin, urlparse
 
 from .captcha import Captcha
+from .exceptions import (AbortedException, CloudflareCaptchaError,
+                         CloudflareCaptchaProvider, CloudflareChallengeError,
+                         CloudflareCode1020, CloudflareIUAMError,
+                         CloudflareSolveError)
 from .interpreters import JavaScriptInterpreter
 
 # ------------------------------------------------------------------------------- #
@@ -55,10 +32,6 @@ class Cloudflare():
         if sys.version_info >= (3, 0):
             if sys.version_info >= (3, 4):
                 return html.unescape(html_text)
-
-            return HTMLParser().unescape(html_text)
-
-        return HTMLParser().unescape(html_text)
 
     # ------------------------------------------------------------------------------- #
     # check if the response contains a valid Cloudflare challenge
@@ -198,14 +171,18 @@ class Cloudflare():
     # ------------------------------------------------------------------------------- #
 
     def IUAM_Challenge_Response(self, body, url, interpreter):
+        formPayload = {}
+        payload = OrderedDict()
         try:
-            formPayload = re.search(
+            matches = re.search(
                 r'<form (?P<form>.*?="challenge-form" '
                 r'action="(?P<challengeUUID>.*?'
                 r'__cf_chl_f_tk=\S+)"(.*?)</form>)',
                 body,
                 re.M | re.DOTALL
-            ).groupdict()
+            )
+            assert matches
+            formPayload = matches.groupdict()
 
             if not all(key in formPayload for key in ['form', 'challengeUUID']):
                 self.cloudscraper.simpleException(
@@ -213,13 +190,12 @@ class Cloudflare():
                     "Cloudflare IUAM detected, unfortunately we can't extract the parameters correctly."
                 )
 
-            payload = OrderedDict()
             for challengeParam in re.findall(r'^\s*<input\s(.*?)/>', formPayload['form'], re.M | re.S):
                 inputPayload = dict(re.findall(r'(\S+)="(\S+)"', challengeParam))
                 if inputPayload.get('name') in ['r', 'jschl_vc', 'pass']:
                     payload.update({inputPayload['name']: inputPayload['value']})
 
-        except AttributeError:
+        except (AttributeError, AssertionError):
             self.cloudscraper.simpleException(
                 CloudflareIUAMError,
                 "Cloudflare IUAM detected, unfortunately we can't extract the parameters correctly."
@@ -247,13 +223,18 @@ class Cloudflare():
     # ------------------------------------------------------------------------------- #
 
     def captcha_Challenge_Response(self, provider, provider_params, body, url):
+        formPayload = {}
+        payload = OrderedDict()
+        captchaType = None
         try:
-            formPayload = re.search(
+            matches = re.search(
                 r'<form (?P<form>.*?="challenge-form" '
                 r'action="(?P<challengeUUID>.*?__cf_chl_captcha_tk__=\S+)"(.*?)</form>)',
                 body,
                 re.M | re.DOTALL
-            ).groupdict()
+            )
+            assert matches
+            formPayload = matches.groupdict()
 
             if not all(key in formPayload for key in ['form', 'challengeUUID']):
                 self.cloudscraper.simpleException(
@@ -270,7 +251,7 @@ class Cloudflare():
 
             captchaType = 'reCaptcha' if payload['name="cf_captcha_kind" value'] == 're' else 'hCaptcha'
 
-        except (AttributeError, KeyError):
+        except (AttributeError, AssertionError, KeyError):
             self.cloudscraper.simpleException(
                 CloudflareCaptchaError,
                 "Cloudflare Captcha detected, unfortunately we can't extract the parameters correctly."
@@ -281,7 +262,7 @@ class Cloudflare():
         # ------------------------------------------------------------------------------- #
 
         if self.cloudscraper.proxies and self.cloudscraper.proxies != self.cloudscraper.captcha.get('proxy'):
-            self.cloudscraper.captcha['proxy'] = self.proxies
+            self.cloudscraper.captcha['proxy'] = self.cloudscraper.proxies
 
         # ------------------------------------------------------------------------------- #
         # Pass User-Agent if provider supports it to solve captcha.
@@ -314,7 +295,7 @@ class Cloudflare():
         ])
 
         if captchaType == 'hCaptcha':
-            dataPayload.update({'h-captcha-response': captchaResponse})
+            dataPayload['h-captcha-response'] = captchaResponse  # type:ignore
 
         hostParsed = urlparse(url)
 
@@ -381,21 +362,23 @@ class Cloudflare():
 
             if not self.cloudscraper.delay:
                 try:
-                    delay = float(
-                        re.search(
-                            r'submit\(\);\r?\n\s*},\s*([0-9]+)',
-                            resp.text
-                        ).group(1)
-                    ) / float(1000)
+                    match = re.search(
+                        r'submit\(\);\r?\n\s*},\s*([0-9]+)',
+                        resp.text
+                    )
+                    assert match
+                    delay = float(match.group(1)) / float(1000)
                     if isinstance(delay, (int, float)):
                         self.cloudscraper.delay = delay
-                except (AttributeError, ValueError):
+                except (AttributeError, AssertionError, ValueError):
                     self.cloudscraper.simpleException(
                         CloudflareIUAMError,
                         "Cloudflare IUAM possibility malformed, issue extracing delay value."
                     )
 
             time.sleep(self.cloudscraper.delay)
+            if self.cloudscraper.signal.is_set():
+                raise AbortedException()
 
             # ------------------------------------------------------------------------------- #
 

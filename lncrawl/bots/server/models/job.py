@@ -62,6 +62,6 @@ class JobRunnerHistoryItem(BaseModel):
     run_state: Optional[RunState] = Field(description="State of the job in progress status")
 
 
-class JobRunnerStatus(BaseModel):
+class JobRunnerHistory(BaseModel):
     running: bool = Field(description='Job runner status')
     history: List[JobRunnerHistoryItem] = Field(description='Runner history')
