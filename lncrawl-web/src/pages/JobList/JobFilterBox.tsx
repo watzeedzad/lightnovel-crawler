@@ -5,10 +5,13 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { JobStatusFilterParams } from './constants';
 import type { JobListHook } from './hooks';
+import { useSelector } from 'react-redux';
+import { Auth } from '@/store/_auth';
 
 export const JobFilterBox: React.FC<
   Pick<JobListHook, 'status' | 'updateParams'>
 > = ({ status, updateParams }) => {
+  const isAdmin = useSelector(Auth.select.isAdmin);
   const [isRunning, setIsRunning] = useState<boolean>();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -47,12 +50,13 @@ export const JobFilterBox: React.FC<
   };
 
   useEffect(() => {
+    if (!isAdmin) return;
     fetchStatus().then(setIsRunning);
     const iid = setInterval(() => {
       fetchStatus().then(setIsRunning);
     }, 5000);
     return () => clearInterval(iid);
-  }, []);
+  }, [isAdmin]);
 
   return (
     <Flex align="center" gap={5}>
@@ -70,18 +74,22 @@ export const JobFilterBox: React.FC<
 
       <div style={{ flex: 1 }} />
 
-      {typeof isRunning === 'undefined' ? null : isRunning ? (
-        <Button onClick={stopRunner} icon={<XFilled />} danger>
-          Stop Jobs
-        </Button>
-      ) : (
-        <Button
-          onClick={startRunner}
-          icon={<PlayCircleFilled />}
-          type="primary"
-        >
-          Start Jobs
-        </Button>
+      {isAdmin && (
+        <>
+          {typeof isRunning === 'undefined' ? null : isRunning ? (
+            <Button onClick={stopRunner} icon={<XFilled />} danger>
+              Stop Jobs
+            </Button>
+          ) : (
+            <Button
+              onClick={startRunner}
+              icon={<PlayCircleFilled />}
+              type="primary"
+            >
+              Start Jobs
+            </Button>
+          )}
+        </>
       )}
     </Flex>
   );
