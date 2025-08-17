@@ -78,7 +78,7 @@ class Scraper(TaskManager, SoupMaker):
                 # debug=True,  # Enable for monitoring (disable in production)
 
                 # KEY SETTINGS to prevent 403 errors
-                min_request_interval=2.5,      # CRITICAL: Prevents TLS blocking
+                min_request_interval=2.0,      # CRITICAL: Prevents TLS blocking
                 max_concurrent_requests=1,     # CRITICAL: Prevents concurrent conflicts
                 rotate_tls_ciphers=True,       # CRITICAL: Avoids cipher detection
 
@@ -160,14 +160,15 @@ class Scraper(TaskManager, SoupMaker):
             reraise=True,
         )
         def _do_request():
-            response = method_call(
-                url,
-                *args,
-                **kwargs,
-                headers=headers,
-            )
-            response.raise_for_status()
-            response.encoding = "utf8"
+            with self.domain_gate(_parsed.hostname):
+                response = method_call(
+                    url,
+                    *args,
+                    **kwargs,
+                    headers=headers,
+                )
+                response.raise_for_status()
+                response.encoding = "utf8"
 
             self.cookies.update({x.name: x.value for x in response.cookies})
             return response

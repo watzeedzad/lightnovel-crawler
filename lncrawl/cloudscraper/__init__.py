@@ -1,43 +1,29 @@
 # ------------------------------------------------------------------------------- #
 
+import copyreg
 import logging
-import requests
-import sys
 import ssl
+import sys
 import time
-from typing import Optional, Dict, Any, Union, List
+from threading import Event
+from typing import Any
+from urllib.parse import urlparse
 
+import brotli  # type:ignore
+import requests
 from requests.adapters import HTTPAdapter
 from requests.sessions import Session
 from requests_toolbelt.utils import dump
 
-# ------------------------------------------------------------------------------- #
-
-try:
-    import brotli
-except ImportError:
-    pass
-
-import copyreg
-from urllib.parse import urlparse
-
-# ------------------------------------------------------------------------------- #
-
-from .exceptions import (
-    CloudflareLoopProtection,
-    CloudflareIUAMError,
-    CloudflareChallengeError,
-    CloudflareTurnstileError,
-    CloudflareV3Error
-)
-
 from .cloudflare import Cloudflare
 from .cloudflare_v2 import CloudflareV2
 from .cloudflare_v3 import CloudflareV3
-from .turnstile import CloudflareTurnstile
-from .user_agent import User_Agent
+from .exceptions import (AbortedException, CloudflareIUAMError,
+                         CloudflareLoopProtection)
 from .proxy_manager import ProxyManager
 from .stealth import StealthMode
+from .turnstile import CloudflareTurnstile
+from .user_agent import User_Agent
 
 # ------------------------------------------------------------------------------- #
 
@@ -59,7 +45,7 @@ class CipherSuiteAdapter(HTTPAdapter):
     ]
 
     def __init__(self, *args, **kwargs):
-        self.ssl_context = kwargs.pop('ssl_context', None)
+        self.ssl_context: Any = kwargs.pop('ssl_context', None)
         self.cipherSuite = kwargs.pop('cipherSuite', None)
         self.source_address = kwargs.pop('source_address', None)
         self.server_hostname = kwargs.pop('server_hostname', None)
@@ -145,6 +131,9 @@ class CloudScraper(Session):
         self.server_hostname = kwargs.pop('server_hostname', None)
         self.ssl_context = kwargs.pop('ssl_context', None)
 
+        # Aborter
+        self.signal = kwargs.pop('signal', Event())
+
         # Compression options
         self.allow_brotli = kwargs.pop(
             'allow_brotli',
@@ -164,14 +153,14 @@ class CloudScraper(Session):
         # Session health monitoring
         self.session_start_time = time.time()
         self.request_count = 0
-        self.last_403_time = 0
+        self.last_403_time = 0.0
         self.session_refresh_interval = kwargs.pop('session_refresh_interval', 3600)  # 1 hour default
         self.auto_refresh_on_403 = kwargs.pop('auto_refresh_on_403', True)
         self.max_403_retries = kwargs.pop('max_403_retries', 3)
         self._403_retry_count = 0
 
         # Request throttling and TLS management
-        self.last_request_time = 0
+        self.last_request_time = 0.0
         self.min_request_interval = kwargs.pop('min_request_interval', 1.0)  # Minimum 1 second between requests
         self.max_concurrent_requests = kwargs.pop('max_concurrent_requests', 1)  # Limit concurrent requests
         self.current_concurrent_requests = 0
@@ -206,9 +195,9 @@ class CloudScraper(Session):
         super(CloudScraper, self).__init__(*args, **kwargs)
 
         # Set up User-Agent and headers
-        if 'requests' in self.headers.get('User-Agent', ''):
+        if 'requests' in str(self.headers.get('User-Agent', '')):
             # Set a random User-Agent if no custom User-Agent has been set
-            self.headers = self.user_agent.headers
+            self.headers = self.user_agent.headers  # type:ignore
             if not self.cipherSuite:
                 self.cipherSuite = self.user_agent.cipherSuite
 
@@ -275,12 +264,13 @@ class CloudScraper(Session):
     # ------------------------------------------------------------------------------- #
 
     def decodeBrotli(self, resp):
-        if requests.packages.urllib3.__version__ < '1.25.1' and resp.headers.get('Content-Encoding') == 'br':
+        urllib3 = requests.packages.urllib3  # type:ignore
+        if urllib3 and urllib3.__version__ < '1.25.1' and resp.headers.get('Content-Encoding') == 'br':
             if self.allow_brotli and resp._content:
                 resp._content = brotli.decompress(resp.content)
             else:
                 logging.warning(
-                    f'You\'re running urllib3 {requests.packages.urllib3.__version__}, Brotli content detected, '
+                    f'You\'re running urllib3 {urllib3.__version__}, Brotli content detected, '
                     'Which requires manual decompression, '
                     'But option allow_brotli is set to False, '
                     'We will not continue to decompress.'
@@ -455,7 +445,7 @@ class CloudScraper(Session):
                 # Try to refresh the session and retry the request
                 if self._refresh_session(url):
                     if self.debug:
-                        print(f'🔄 Session refreshed successfully, retrying original request...')
+                        print('🔄 Session refreshed successfully, retrying original request...')
 
                     # Mark that we're in a retry to prevent retry count reset
                     self._in_403_retry = True
@@ -526,7 +516,7 @@ class CloudScraper(Session):
             # Generate new user agent to avoid fingerprint detection
             if hasattr(self, 'user_agent'):
                 self.user_agent.loadUserAgent()
-                self.headers.update(self.user_agent.headers)
+                self.headers.update(self.user_agent.headers)  # type:ignore
 
             # Make a simple request to re-establish session
             try:
@@ -571,7 +561,7 @@ class CloudScraper(Session):
             for domain in list(self.cookies.list_domains()):
                 try:
                     self.cookies.clear(domain, '/', cookie_name)
-                except:
+                except Exception:
                     pass
 
         if self.debug:
@@ -590,12 +580,16 @@ class CloudScraper(Session):
             if self.debug:
                 print(f'⏱️ Request throttling: sleeping {sleep_time:.2f}s')
             time.sleep(sleep_time)
+            if self.signal.is_set():
+                raise AbortedException()
 
         # Wait if too many concurrent requests
         while self.current_concurrent_requests >= self.max_concurrent_requests:
             if self.debug:
                 print(f'🚦 Concurrent request limit reached ({self.current_concurrent_requests}/{self.max_concurrent_requests}), waiting...')
             time.sleep(0.1)
+            if self.signal.is_set():
+                raise AbortedException()
 
         self.last_request_time = time.time()
 
@@ -761,7 +755,7 @@ class CloudScraper(Session):
                     break
             else:
                 cls.simpleException(
-                    cls,
+                    cls,  # type:ignore
                     CloudflareIUAMError,
                     "Unable to find Cloudflare cookies. Does the site actually "
                     "have Cloudflare IUAM (I'm Under Attack Mode) enabled?"

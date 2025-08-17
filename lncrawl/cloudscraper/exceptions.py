@@ -17,6 +17,10 @@ class CloudflareException(Exception):
     """
 
 
+class AbortedException(CloudflareException):
+    pass
+
+
 class CloudflareLoopProtection(CloudflareException):
     """
     Raise an exception for recursive depth protection

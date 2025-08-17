@@ -1,15 +1,20 @@
 from fastapi import APIRouter, Depends
 
 from ..context import ServerContext
-from ..models.job import JobRunnerStatus
+from ..models.job import JobRunnerHistory
 
 # The root router
 router = APIRouter()
 
 
 @router.get("/status", summary='Get runner status')
-def running(ctx: ServerContext = Depends()) -> JobRunnerStatus:
-    return JobRunnerStatus(
+def status(ctx: ServerContext = Depends()) -> bool:
+    return bool(ctx.scheduler.running)
+
+
+@router.get("/history", summary='Get runner history')
+def history(ctx: ServerContext = Depends()) -> JobRunnerHistory:
+    return JobRunnerHistory(
         running=ctx.scheduler.running,
         history=list(reversed(ctx.scheduler.history)),
     )

@@ -40,7 +40,7 @@ class User_Agent():
         for device_type in user_agents['user_agents']:
             for platform in user_agents['user_agents'][device_type]:
                 for browser in user_agents['user_agents'][device_type][platform]:
-                    if re.search(re.escape(self.custom), ' '.join(user_agents['user_agents'][device_type][platform][browser])):
+                    if self.custom and re.search(re.escape(self.custom), ' '.join(user_agents['user_agents'][device_type][platform][browser])):
                         self.headers = user_agents['headers'][browser]
                         self.headers['User-Agent'] = self.custom
                         self.cipherSuite = user_agents['cipherSuite'][browser]
@@ -83,10 +83,9 @@ class User_Agent():
             # Fallback for executable environments
             try:
                 # Try alternative paths for executables
-                import sys
                 if getattr(sys, 'frozen', False):
                     # Running in a PyInstaller bundle
-                    bundle_dir = sys._MEIPASS
+                    bundle_dir = sys._MEIPASS  # type:ignore
                     browsers_json_path = os.path.join(bundle_dir, 'cloudscraper', 'user_agent', 'browsers.json')
                 else:
                     # Try current directory
@@ -226,7 +225,7 @@ class User_Agent():
 
             self.headers['User-Agent'] = random.SystemRandom().choice(filteredAgents[self.browser])
 
-        if not kwargs.get('allow_brotli', False) and 'br' in self.headers['Accept-Encoding']:
-            self.headers['Accept-Encoding'] = ','.join([
-                encoding for encoding in self.headers['Accept-Encoding'].split(',') if encoding.strip() != 'br'
+        if not kwargs.get('allow_brotli', False) and 'br' in self.headers['Accept-Encoding']:  # type:ignore
+            self.headers['Accept-Encoding'] = ','.join([  # type:ignore
+                encoding for encoding in self.headers['Accept-Encoding'].split(',') if encoding.strip() != 'br'  # type:ignore
             ]).strip()
