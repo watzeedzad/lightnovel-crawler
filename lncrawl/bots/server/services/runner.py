@@ -16,6 +16,7 @@ from ..models.enums import JobStatus, RunState
 from ..models.job import Job
 from ..models.novel import Artifact, Novel
 from ..models.user import User
+from ..utils.time_utils import current_timestamp
 from .tier import ENABLED_FORMATS, SLOT_TIMEOUT_IN_SECOND
 
 
@@ -96,6 +97,9 @@ def microtask(job_id: str, signal=Event()) -> None:
         #
         if job.run_state == RunState.FETCHING_NOVEL:
             logger.info('Fetching novel info')
+
+            if job.started_at and current_timestamp() - job.started_at > 3600 * 1000:
+                raise Exception('Timeout fetching novel info')
 
             app.get_novel_info()
 
