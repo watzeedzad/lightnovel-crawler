@@ -20,6 +20,7 @@ class JobScheduler:
     def __init__(self, ctx: ServerContext) -> None:
         self.ctx = ctx
         self.db = ctx.db
+        self.start_ts: int = 0
         self.last_cleanup_ts: int = 0
         self.signal: Optional[Event] = None
         self.threads: Dict[str, Thread] = {}
@@ -38,6 +39,7 @@ class JobScheduler:
         if self.running:
             return
         self.signal = Event()
+        self.start_ts = current_timestamp()
         Thread(
             target=self.run,
             args=[self.signal],
@@ -52,6 +54,7 @@ class JobScheduler:
 
     def run(self, signal=Event()):
         logger.info("Scheduler started")
+        pending_restart = False
         try:
             while not signal.is_set():
                 signal.wait(self.ctx.config.app.runner_cooldown)
@@ -61,10 +64,15 @@ class JobScheduler:
                 self.__add_cleaner(signal)
                 if len(self.threads) < CONCURRENCY:
                     self.__add_job(signal)
+                if current_timestamp() - self.start_ts > 6 * 3600 * 1000:
+                    pending_restart = True
+                    self.stop()
         except KeyboardInterrupt:
             signal.set()
         finally:
             logger.info("Scheduler stoppped")
+            if pending_restart:
+                self.start()
 
     def __free(self):
         logger.debug("Waiting for queue to be free")
