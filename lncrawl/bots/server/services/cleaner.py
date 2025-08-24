@@ -19,7 +19,7 @@ def microtask(signal=Event()) -> None:
     sess = ctx.db.session()
     output_folder = ctx.config.app.output_path
     size_limit = ctx.config.app.disk_size_limit
-    cutoff = current_timestamp() - 24 * 3600 * 1000  # 1 day
+    cutoff = current_timestamp() - 5 * 24 * 3600 * 1000  # 5 days
 
     logger.info("=== Cleanup begin ===")
     try:
