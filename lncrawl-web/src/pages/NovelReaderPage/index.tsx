@@ -36,10 +36,13 @@ export const NovelReaderPage: React.FC<any> = () => {
 
   useEffect(() => {
     if (id && hash) {
-      window.scrollTo(0, 0);
       fetchChapter(id, hash);
     }
   }, [id, hash, refreshId]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [])
 
   if (loading) {
     return (
