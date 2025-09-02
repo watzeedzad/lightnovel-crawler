@@ -40,10 +40,6 @@ export const NovelReaderPage: React.FC<any> = () => {
     }
   }, [id, hash, refreshId]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [])
-
   if (loading) {
     return (
       <Flex align="center" justify="center" style={{ height: '100%' }}>
