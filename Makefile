@@ -5,14 +5,16 @@ ifeq ($(OS),Windows_NT)
 	PY := .venv/Scripts/python
 	PIP := .venv/Scripts/pip
 	FLAKE8 := .venv/Scripts/flake8
+	NVM := nvm exec
 else
 	PYTHON := python3
 	PY := .venv/bin/python
 	PIP := .venv/bin/pip
 	FLAKE8 := .venv/bin/flake8
+	NVM := "$$NVM_DIR"/nvm-exec
 endif
 
-YARN := yarn --cwd lncrawl-web
+YARN := cd lncrawl-web && $(NVM) yarn
 VERSION := $(shell $(PYTHON) -c "print(open('lncrawl/VERSION').read().strip())")
 
 # Default target (help/info)
@@ -58,7 +60,7 @@ build-web:
 build-wheel:
 	$(PY) -m build -w
 
-build-exe: 
+build-exe:
 	$(PY) setup_pyi.py
 
 build: version install build-web build-wheel build-exe
