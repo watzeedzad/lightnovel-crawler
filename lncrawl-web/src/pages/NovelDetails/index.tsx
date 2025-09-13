@@ -23,66 +23,66 @@ export const NovelDetailsPage: React.FC<any> = () => {
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [volumes, setVolumes] = useState<Volume[]>([]);
 
-  const fetchNovel = async (id: string) => {
-    setError(undefined);
-    try {
-      const { data } = await axios.get<Novel>(`/api/novel/${id}`);
-      setNovel(data);
-    } catch (err: any) {
-      setError(stringifyError(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchArtifacts = async (id: string) => {
-    try {
-      const { data } = await axios.get<Artifact[]>(
-        `/api/novel/${id}/artifacts`
-      );
-      setArtifacts(data);
-    } catch (err) {
-      messageApi.open({
-        type: 'error',
-        content: stringifyError(err, 'Failed to fetch artifacts'),
-      });
-    }
-  };
-
-  const fetchToc = async (id: string) => {
-    try {
-      // fetch volume and chapter list
-      const { data } = await axios.get<Volume[]>(`/api/novel/${id}/toc`);
-      setVolumes([...data]);
-
-      // update read status
-      await Promise.all(
-        data.flatMap(async (volume) => {
-          const reads = await Promise.all(
-            volume.chapters.map(async (chapter) => {
-              chapter.isRead = await getChapterReadStatus(id, chapter.id);
-              return chapter.isRead ? 1 : 0;
-            })
-          );
-          volume.isRead = reads.indexOf(0) < 0;
-        })
-      );
-      setVolumes([...data]);
-    } catch (err) {
-      messageApi.open({
-        type: 'error',
-        content: stringifyError(err, 'Failed to fetch TOC'),
-      });
-    }
-  };
-
   useEffect(() => {
+    const fetchNovel = async (id: string) => {
+      setError(undefined);
+      try {
+        const { data } = await axios.get<Novel>(`/api/novel/${id}`);
+        setNovel(data);
+      } catch (err: any) {
+        setError(stringifyError(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchArtifacts = async (id: string) => {
+      try {
+        const { data } = await axios.get<Artifact[]>(
+          `/api/novel/${id}/artifacts`
+        );
+        setArtifacts(data);
+      } catch (err) {
+        messageApi.open({
+          type: 'error',
+          content: stringifyError(err, 'Failed to fetch artifacts'),
+        });
+      }
+    };
+
+    const fetchToc = async (id: string) => {
+      try {
+        // fetch volume and chapter list
+        const { data } = await axios.get<Volume[]>(`/api/novel/${id}/toc`);
+        setVolumes([...data]);
+
+        // update read status
+        await Promise.all(
+          data.flatMap(async (volume) => {
+            const reads = await Promise.all(
+              volume.chapters.map(async (chapter) => {
+                chapter.isRead = await getChapterReadStatus(id, chapter.id);
+                return chapter.isRead ? 1 : 0;
+              })
+            );
+            volume.isRead = reads.indexOf(0) < 0;
+          })
+        );
+        setVolumes([...data]);
+      } catch (err) {
+        messageApi.open({
+          type: 'error',
+          content: stringifyError(err, 'Failed to fetch TOC'),
+        });
+      }
+    };
+
     if (id) {
       fetchNovel(id);
       fetchArtifacts(id);
       fetchToc(id);
     }
-  }, [id, refreshId]);
+  }, [id, refreshId, messageApi]);
 
   if (loading) {
     return (

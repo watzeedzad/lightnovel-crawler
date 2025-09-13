@@ -3,7 +3,6 @@ import { type Novel } from '@/types';
 import { formatDate } from '@/utils/time';
 import { ExportOutlined } from '@ant-design/icons';
 import {
-  Avatar,
   Card,
   Descriptions,
   Divider,
@@ -11,13 +10,13 @@ import {
   Flex,
   Grid,
   Image,
-  Space,
   Tag,
   Tooltip,
   Typography,
 } from 'antd';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { NovelDomainName } from './NovelDomainName';
 
 export const NovelDetailsCard: React.FC<{ novel?: Novel }> = ({ novel }) => {
   const location = useLocation();
@@ -37,18 +36,6 @@ export const NovelDetailsCard: React.FC<{ novel?: Novel }> = ({ novel }) => {
     );
   }
 
-  const novelUrl = useMemo(() => new URL(novel.url), [novel.url]);
-
-  const faviconLink = useMemo(
-    () => novelUrl.origin + '/favicon.ico',
-    [novelUrl]
-  );
-
-  const domainName = useMemo(
-    () => novelUrl.hostname.replace('www.', ''),
-    [novelUrl]
-  );
-
   return (
     <Card
       variant="outlined"
@@ -60,12 +47,7 @@ export const NovelDetailsCard: React.FC<{ novel?: Novel }> = ({ novel }) => {
       }}
       title={
         <Flex vertical>
-          <Space size="small" style={{ marginLeft: -5 }}>
-            <Avatar src={faviconLink} size={24} />
-            <Typography.Text type="secondary" style={{ fontSize: '18px' }}>
-              {domainName}
-            </Typography.Text>
-          </Space>
+          <NovelDomainName novel={novel} />
           <Typography.Text style={{ fontSize: '24px', whiteSpace: 'wrap' }}>
             {location.pathname === `/novel/${novel.id}` ? (
               novel.title

@@ -41,7 +41,7 @@ export function useNovelList() {
     } else {
       return 24;
     }
-  }, [breakpoint.xl, breakpoint.lg, breakpoint.sm]);
+  }, [breakpoint.xl, breakpoint.lg]);
 
   const fetchNovels = async (search: string, page: number, limit: number) => {
     setError(undefined);
