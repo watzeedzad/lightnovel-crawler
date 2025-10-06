@@ -56,3 +56,12 @@ class UpdateRequest(BaseModel):
     role: Optional[UserRole] = Field(default=None, description="User role")
     is_active: Optional[bool] = Field(default=None, description="Active status")
     tier: Optional[UserTier] = Field(default=None, description="User tier")
+
+
+class PasswordUpdateRequest(BaseModel):
+    new_password: str = Field(nullable=False, description="New password")
+    old_password: str = Field(nullable=False, description="Current password")
+
+
+class NameUpdateRequest(BaseModel):
+    name: str = Field(nullable=False, description="Full name")

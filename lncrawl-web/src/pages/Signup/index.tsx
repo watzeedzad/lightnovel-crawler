@@ -90,13 +90,18 @@ export const SignupPage: React.FC<any> = () => {
               >
                 <Input placeholder="Enter email" autoComplete="new-user" />
               </Form.Item>
+
               <Form.Item
                 name={'password'}
                 label="Password"
-                rules={[{ required: true }]}
+                rules={[
+                  { required: true, message: 'Enter a password' },
+                  { min: 6, message: 'Password must be at least 6 characters' },
+                ]}
+                hasFeedback
               >
                 <Input.Password
-                  placeholder="Enter password"
+                  placeholder="New password"
                   autoComplete="new-password"
                 />
               </Form.Item>

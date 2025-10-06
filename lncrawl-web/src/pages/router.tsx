@@ -11,6 +11,7 @@ import { SignupPage } from './Signup';
 import { SupportedSourcesPage } from './SupportedSources';
 import { UserDetailsPage } from './UserDetails';
 import { UserListPage } from './UserList';
+import { UserProfilePage } from './UserProfilePage';
 
 export const AUTH_ROUTES: RouteObject[] = [
   {
@@ -40,6 +41,10 @@ export const USER_ROUTES: RouteObject[] = [
       {
         path: '',
         element: <JobListPage />,
+      },
+      {
+        path: 'profile',
+        element: <UserProfilePage />,
       },
       {
         path: 'job/:id',

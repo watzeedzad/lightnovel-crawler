@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Body, Depends, Security, Form
+from fastapi import APIRouter, Body, Depends, Form, Security
 
 from ..context import ServerContext
 from ..models.user import (CreateRequest, LoginRequest, LoginResponse,
+                           NameUpdateRequest, PasswordUpdateRequest,
                            SignupRequest, TokenResponse, UpdateRequest, User)
 from ..security import ensure_user
 
@@ -57,19 +58,23 @@ def me(
     return user
 
 
-@router.put('/me/update', summary='Update current user details')
-def self_update(
+@router.put('/me/name', summary='Update current user name')
+def self_name_update(
     ctx: ServerContext = Depends(),
     user: User = Security(ensure_user),
-    body: UpdateRequest = Body(
-        default=...,
-        description='The signup request',
-    ),
+    body: NameUpdateRequest = Body(description='The update request'),
 ) -> bool:
-    body.role = None
-    body.tier = None
-    body.is_active = None
-    return ctx.users.update(user.id, body)
+    request = UpdateRequest(name=body.name)
+    return ctx.users.update(user.id, request)
+
+
+@router.put('/me/password', summary='Update current user password')
+def self_password_update(
+    ctx: ServerContext = Depends(),
+    user: User = Security(ensure_user),
+    body: PasswordUpdateRequest = Body(description='The update request'),
+) -> bool:
+    return ctx.users.change_password(user, body)
 
 
 @router.post('/me/send-otp', summary='Send OTP to current user email for verification')

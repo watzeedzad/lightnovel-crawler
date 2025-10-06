@@ -11,7 +11,7 @@ from ..context import ServerContext
 from ..exceptions import AppErrors
 from ..models.pagination import Paginated
 from ..models.user import (CreateRequest, LoginRequest, UpdateRequest, User,
-                           UserRole, UserTier, VerifiedEmail)
+                           UserRole, UserTier, VerifiedEmail, PasswordUpdateRequest)
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +199,12 @@ class UserService:
                 sess.add(user)
                 sess.commit()
             return updated
+
+    def change_password(self, user: User, body: PasswordUpdateRequest) -> bool:
+        if not self._check(body.old_password, user.password):
+            raise AppErrors.wrong_password
+        request = UpdateRequest(password=body.new_password)
+        return self.update(user.id, request)
 
     def remove(self, user_id: str) -> bool:
         with self._db.session() as sess:
