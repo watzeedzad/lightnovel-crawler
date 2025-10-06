@@ -79,6 +79,11 @@ class App:
         '''maximum output folder size in bytes'''
         return int(env('DISK_SIZE_LIMIT_IN_MB', 0)) * 1024 * 1024
 
+    @cached_property
+    def scheduler_reset_interval(self) -> int:
+        '''time (seconds) to sleep before starting next job'''
+        return int(env('SCHEDULER_RESET_INTERVAL_IN_SECONDS', 6 * 3600))
+
 
 class Mail:
     @cached_property
