@@ -1,7 +1,7 @@
 import { Auth } from '@/store/_auth';
 import { type User } from '@/types';
 import { stringifyError } from '@/utils/errors';
-import { CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { Button, message } from 'antd';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
@@ -40,7 +40,7 @@ export const UserActionButtons: React.FC<{
           title="Disable"
           type="primary"
           danger
-          icon={<StopOutlined />}
+          icon={<CloseCircleOutlined />}
           onClick={toggleUserActiveStatus}
         >
           Disable

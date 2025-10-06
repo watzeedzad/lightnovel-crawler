@@ -16,8 +16,8 @@ import { useState } from 'react';
 
 export const ProfileNameChangeButton: React.FC<{
   user: User;
-  onDone: () => Promise<any>;
-}> = ({ user, onDone }) => {
+  onChange?: () => any;
+}> = ({ user, onChange }) => {
   const [messageApi, contextHolder] = message.useMessage();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -29,10 +29,11 @@ export const ProfileNameChangeButton: React.FC<{
       await axios.put('/api/auth/me/name', {
         name: values.name.trim(),
       });
-      await onDone();
       messageApi.success('Name updated successfully');
       setEditOpen(false);
+      onChange && onChange();
     } catch (err) {
+      console.error(err);
       messageApi.error(stringifyError(err));
     } finally {
       setUpdating(false);
@@ -41,12 +42,9 @@ export const ProfileNameChangeButton: React.FC<{
 
   return (
     <>
-      <Button
-        size="small"
-        shape="round"
-        icon={<EditOutlined />}
-        onClick={() => setEditOpen(true)}
-      >
+      {contextHolder}
+
+      <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
         Edit
       </Button>
 
@@ -61,7 +59,6 @@ export const ProfileNameChangeButton: React.FC<{
         onCancel={() => setEditOpen(false)}
         destroyOnHidden
       >
-        {contextHolder}
         <Form
           size="large"
           layout="vertical"

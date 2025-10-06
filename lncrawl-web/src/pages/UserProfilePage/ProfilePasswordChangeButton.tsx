@@ -36,6 +36,7 @@ export const ProfilePasswordChangeButton: React.FC<any> = () => {
       messageApi.success('Password changed successfully');
       setOpen(false);
     } catch (err) {
+      console.error(err);
       messageApi.error(stringifyError(err));
     } finally {
       setChanging(false);

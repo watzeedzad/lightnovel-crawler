@@ -80,13 +80,24 @@ export const SignupPage: React.FC<any> = () => {
               layout="vertical"
               labelCol={{ style: { padding: 0 } }}
             >
-              <Form.Item name="name" label="Full Name">
+              <Form.Item
+                name="name"
+                label="Full Name"
+                rules={[
+                  { required: true, message: 'Please enter your name' },
+                  { min: 2, message: 'Name must be at least 2 characters' },
+                ]}
+              >
                 <Input placeholder="Enter full name" autoComplete="name" />
               </Form.Item>
+
               <Form.Item
                 name="email"
                 label="Email"
-                rules={[{ required: true }]}
+                rules={[
+                  { required: true, message: 'Please enter your email' },
+                  { type: 'email', message: 'Please enter a valid email' },
+                ]}
               >
                 <Input placeholder="Enter email" autoComplete="new-user" />
               </Form.Item>
@@ -95,7 +106,7 @@ export const SignupPage: React.FC<any> = () => {
                 name={'password'}
                 label="Password"
                 rules={[
-                  { required: true, message: 'Enter a password' },
+                  { required: true, message: 'Please enter a password' },
                   { min: 6, message: 'Password must be at least 6 characters' },
                 ]}
                 hasFeedback
@@ -115,7 +126,6 @@ export const SignupPage: React.FC<any> = () => {
                   onClose={() => setError('')}
                 />
               )}
-
               <FormItem style={{ marginTop: '20px' }}>
                 <Button
                   block
