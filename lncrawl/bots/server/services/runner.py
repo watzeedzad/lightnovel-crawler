@@ -64,6 +64,7 @@ def microtask(job_id: str, signal=Event()) -> None:
         #
         # Prepare user, novel, app, crawler
         #
+        logger.info('Prepare required data')
         user = sess.get(User, job.user_id)
         if not user:
             job.error = 'User is not available'
@@ -78,6 +79,7 @@ def microtask(job_id: str, signal=Event()) -> None:
             job.run_state = RunState.FAILED
             return save()
 
+        logger.info('Initializing crawler')
         app.user_input = job.url
         app.output_formats = {x: True for x in ENABLED_FORMATS[user.tier]}
         app.output_formats[OutputFormat.json] = True
@@ -122,6 +124,7 @@ def microtask(job_id: str, signal=Event()) -> None:
         #
         # Restore session
         #
+        logger.info('Restoring session')
         if novel.orphan or not novel.title:
             job.error = 'Failed to fetch novel'
             job.status = JobStatus.COMPLETED
@@ -188,8 +191,14 @@ def microtask(job_id: str, signal=Event()) -> None:
             job.progress = round(app.progress)
             return save()
 
+        logger.info('Restoring chapter contents')
         app.chapters = crawler.chapters
         restore_chapter_body(app)
+
+        logger.info('Restoring job artifacts')
+        for artifact in ctx.jobs.get_artifacts(job_id):
+            app.generated_archives[artifact.format] = artifact.output_file
+            logger.info(f'Artifact [{artifact.format}]: {artifact.output_file}')
 
         #
         # State: CREATING_ARTIFACTS
@@ -206,6 +215,8 @@ def microtask(job_id: str, signal=Event()) -> None:
                     output_file=archive_file,
                 )
                 ctx.artifacts.upsert(artifact)
+                logger.info(f'Artifact [{fmt}]: {archive_file}')
+                return  # bind one at a time
 
             # remove output folders (except json)
             for fmt in OutputFormat:

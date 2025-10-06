@@ -105,6 +105,7 @@ def generate_books(app, data) -> Generator[OutputFormat, None, None]:
         fmt
         for fmt in available_formats
         if app.output_formats.get(fmt)
+        and not app.generated_archives.get(fmt)
     ]
 
     app.binding_progress = 0

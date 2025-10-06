@@ -75,7 +75,7 @@ class Scraper(TaskManager, SoupMaker):
         try:
             # OPTIMAL CONFIGURATION for preventing your specific 403 issues
             self.scraper = create_scraper(
-                debug=bool(os.getenv("debug_mode")),  # Enable for monitoring (disable in production)
+                # debug=True,  # Enable for monitoring (disable in production)
 
                 # KEY SETTINGS to prevent 403 errors
                 min_request_interval=2.0,      # CRITICAL: Prevents TLS blocking
