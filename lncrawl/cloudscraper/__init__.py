@@ -157,7 +157,6 @@ class CloudScraper(Session):
         self.session_refresh_interval = kwargs.pop('session_refresh_interval', 3600)  # 1 hour default
         self.auto_refresh_on_403 = kwargs.pop('auto_refresh_on_403', True)
         self.max_403_retries = kwargs.pop('max_403_retries', 3)
-        self._403_retry_count = 0
 
         # Request throttling and TLS management
         self.last_request_time = 0.0
@@ -283,199 +282,163 @@ class CloudScraper(Session):
     # ------------------------------------------------------------------------------- #
 
     def request(self, method, url, *args, **kwargs):
-        # Apply request throttling to prevent TLS blocking
-        self._apply_request_throttling()
-
-        # Rotate TLS cipher suites to avoid detection
-        if self.rotate_tls_ciphers:
-            self._rotate_tls_cipher_suite()
-
-        # Check if session needs refresh due to age
-        if self._should_refresh_session():
-            self._refresh_session(url)
-
-        # Handle proxy rotation if no specific proxies are provided
-        if not kwargs.get('proxies') and hasattr(self, 'proxy_manager') and self.proxy_manager.proxies:
-            kwargs['proxies'] = self.proxy_manager.get_proxy()
-        elif kwargs.get('proxies') and kwargs.get('proxies') != self.proxies:
-            self.proxies = kwargs.get('proxies')
-
-        # Apply stealth techniques if enabled
-        if self.enable_stealth:
-            kwargs = self.stealth_mode.apply_stealth_techniques(method, url, **kwargs)
-
-        # Track request count
-        self.request_count += 1
-
-        # Track concurrent requests
-        self.current_concurrent_requests += 1
-
-        # ------------------------------------------------------------------------------- #
-        # Pre-Hook the request via user defined function.
-        # ------------------------------------------------------------------------------- #
-
-        if self.requestPreHook:
-            (method, url, args, kwargs) = self.requestPreHook(
-                self,
-                method,
-                url,
-                *args,
-                **kwargs
-            )
-
-        # ------------------------------------------------------------------------------- #
-        # Make the request via requests.
-        # ------------------------------------------------------------------------------- #
-
         try:
-            response = self.decodeBrotli(
-                self.perform_request(method, url, *args, **kwargs)
-            )
+            # Apply request throttling to prevent TLS blocking
+            self._apply_request_throttling()
 
-            # Report successful proxy use if applicable
-            if kwargs.get('proxies') and hasattr(self, 'proxy_manager'):
-                self.proxy_manager.report_success(kwargs['proxies'])
+            # Rotate TLS cipher suites to avoid detection
+            if self.rotate_tls_ciphers:
+                self._rotate_tls_cipher_suite()
 
-        except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError) as e:
-            # Report failed proxy use if applicable
-            if kwargs.get('proxies') and hasattr(self, 'proxy_manager'):
-                self.proxy_manager.report_failure(kwargs['proxies'])
+            # Check if session needs refresh due to age
+            if self._should_refresh_session():
+                self._refresh_session(url)
 
-            # CRITICAL FIX: Always decrement concurrent request counter on exception
-            if self.current_concurrent_requests > 0:
-                self.current_concurrent_requests -= 1
-            raise e
-        except Exception as e:
-            # CRITICAL FIX: Always decrement concurrent request counter on any exception
-            if self.current_concurrent_requests > 0:
-                self.current_concurrent_requests -= 1
-            raise e
+            # Handle proxy rotation if no specific proxies are provided
+            if not kwargs.get('proxies') and hasattr(self, 'proxy_manager') and self.proxy_manager.proxies:
+                kwargs['proxies'] = self.proxy_manager.get_proxy()
+            elif kwargs.get('proxies') and kwargs.get('proxies') != self.proxies:
+                self.proxies = kwargs.get('proxies')
 
-        # ------------------------------------------------------------------------------- #
-        # Debug the request via the Response object.
-        # ------------------------------------------------------------------------------- #
+            # Apply stealth techniques if enabled
+            if self.enable_stealth:
+                kwargs = self.stealth_mode.apply_stealth_techniques(method, url, **kwargs)
 
-        if self.debug:
-            self.debugRequest(response)
+            # Track request count
+            self.request_count += 1
 
-        # ------------------------------------------------------------------------------- #
-        # Post-Hook the request aka Post-Hook the response via user defined function.
-        # ------------------------------------------------------------------------------- #
+            # Track concurrent requests
+            self.current_concurrent_requests += 1
 
-        if self.requestPostHook:
-            newResponse = self.requestPostHook(self, response)
+            # ------------------------------------------------------------------------------- #
+            # Pre-Hook the request via user defined function.
+            # ------------------------------------------------------------------------------- #
 
-            if response != newResponse:
-                response = newResponse
-                if self.debug:
-                    print('==== requestPostHook Debug ====')
-                    self.debugRequest(response)
+            if self.requestPreHook:
+                (method, url, args, kwargs) = self.requestPreHook(
+                    self,
+                    method,
+                    url,
+                    *args,
+                    **kwargs
+                )
 
-        # ------------------------------------------------------------------------------- #
-        # Handle Cloudflare challenges
-        # ------------------------------------------------------------------------------- #
+            # ------------------------------------------------------------------------------- #
+            # Make the request via requests.
+            # ------------------------------------------------------------------------------- #
 
-        # Check for loop protection
-        if self._solveDepthCnt >= self.solveDepth:
-            _ = self._solveDepthCnt
-            self.simpleException(
-                CloudflareLoopProtection,
-                f"!!Loop Protection!! We have tried to solve {_} time(s) in a row."
-            )
+            try:
+                response = self.decodeBrotli(
+                    self.perform_request(method, url, *args, **kwargs)
+                )
 
-        # Check for Cloudflare Turnstile challenges first (if not disabled)
-        if not self.disableTurnstile:
-            # Check for Turnstile Challenge
-            if self.turnstile.is_Turnstile_Challenge(response):
-                if self.debug:
-                    print('Detected a Cloudflare Turnstile challenge.')
-                self._solveDepthCnt += 1
-                response = self.turnstile.handle_Turnstile_Challenge(response, **kwargs)
-                return response
+                # Report successful proxy use if applicable
+                if kwargs.get('proxies') and hasattr(self, 'proxy_manager'):
+                    self.proxy_manager.report_success(kwargs['proxies'])
 
-        # Check for Cloudflare v3 challenges (if not disabled)
-        if not self.disableCloudflareV3:
-            # Check for v3 JavaScript VM Challenge
-            if self.cloudflare_v3.is_V3_Challenge(response):
-                if self.debug:
-                    print('Detected a Cloudflare v3 JavaScript VM challenge.')
-                self._solveDepthCnt += 1
-                response = self.cloudflare_v3.handle_V3_Challenge(response, **kwargs)
-                return response
+            except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError) as e:
+                # Report failed proxy use if applicable
+                if kwargs.get('proxies') and hasattr(self, 'proxy_manager'):
+                    self.proxy_manager.report_failure(kwargs['proxies'])
 
-        # Check for Cloudflare v2 challenges (if not disabled)
-        if not self.disableCloudflareV2:
-            # Check for v2 Captcha Challenge
-            if self.cloudflare_v2.is_V2_Captcha_Challenge(response):
-                self._solveDepthCnt += 1
-                response = self.cloudflare_v2.handle_V2_Captcha_Challenge(response, **kwargs)
-                return response
+                # CRITICAL FIX: Always decrement concurrent request counter on exception
+                if self.current_concurrent_requests > 0:
+                    self.current_concurrent_requests -= 1
+                raise e
+            except Exception as e:
+                # CRITICAL FIX: Always decrement concurrent request counter on any exception
+                if self.current_concurrent_requests > 0:
+                    self.current_concurrent_requests -= 1
+                raise e
 
-            # Check for v2 JavaScript Challenge
-            if self.cloudflare_v2.is_V2_Challenge(response):
-                self._solveDepthCnt += 1
-                response = self.cloudflare_v2.handle_V2_Challenge(response, **kwargs)
-                return response
+            # ------------------------------------------------------------------------------- #
+            # Debug the request via the Response object.
+            # ------------------------------------------------------------------------------- #
 
-        # Check for Cloudflare v1 challenges (if not disabled)
-        if not self.disableCloudflareV1:
-            # Check if Cloudflare v1 anti-bot is on
-            if self.cloudflare_v1.is_Challenge_Request(response):
-                # Try to solve the challenge and send it back
-                self._solveDepthCnt += 1
-                response = self.cloudflare_v1.Challenge_Response(response, **kwargs)
-                return response
+            if self.debug:
+                self.debugRequest(response)
 
-        # Reset solve depth counter if no challenge was detected
-        if not response.is_redirect and response.status_code not in [429, 503]:
-            self._solveDepthCnt = 0
-            # Reset 403 retry count on successful request (ONLY if not in retry mode)
-            if response.status_code == 200 and not hasattr(self, '_in_403_retry'):
-                self._403_retry_count = 0
+            # ------------------------------------------------------------------------------- #
+            # Post-Hook the request aka Post-Hook the response via user defined function.
+            # ------------------------------------------------------------------------------- #
 
-        # Handle 403 errors with automatic session refresh
-        if response.status_code == 403 and self.auto_refresh_on_403:
-            if self._403_retry_count < self.max_403_retries:
-                self._403_retry_count += 1
+            if self.requestPostHook:
+                newResponse = self.requestPostHook(self, response)
+
+                if response != newResponse:
+                    response = newResponse
+                    if self.debug:
+                        print('==== requestPostHook Debug ====')
+                        self.debugRequest(response)
+
+            # ------------------------------------------------------------------------------- #
+            # Handle Cloudflare challenges
+            # ------------------------------------------------------------------------------- #
+
+            # Check for loop protection
+            if self._solveDepthCnt >= self.solveDepth:
+                _ = self._solveDepthCnt
+                self.simpleException(
+                    CloudflareLoopProtection,
+                    f"!!Loop Protection!! We have tried to solve {_} time(s) in a row."
+                )
+
+            # Check for Cloudflare Turnstile challenges first (if not disabled)
+            if not self.disableTurnstile:
+                # Check for Turnstile Challenge
+                if self.turnstile.is_Turnstile_Challenge(response):
+                    if self.debug:
+                        print('Detected a Cloudflare Turnstile challenge.')
+                    self._solveDepthCnt += 1
+                    response = self.turnstile.handle_Turnstile_Challenge(response, **kwargs)
+                    return response
+
+            # Check for Cloudflare v3 challenges (if not disabled)
+            if not self.disableCloudflareV3:
+                # Check for v3 JavaScript VM Challenge
+                if self.cloudflare_v3.is_V3_Challenge(response):
+                    if self.debug:
+                        print('Detected a Cloudflare v3 JavaScript VM challenge.')
+                    self._solveDepthCnt += 1
+                    response = self.cloudflare_v3.handle_V3_Challenge(response, **kwargs)
+                    return response
+
+            # Check for Cloudflare v2 challenges (if not disabled)
+            if not self.disableCloudflareV2:
+                # Check for v2 Captcha Challenge
+                if self.cloudflare_v2.is_V2_Captcha_Challenge(response):
+                    self._solveDepthCnt += 1
+                    response = self.cloudflare_v2.handle_V2_Captcha_Challenge(response, **kwargs)
+                    return response
+
+                # Check for v2 JavaScript Challenge
+                if self.cloudflare_v2.is_V2_Challenge(response):
+                    self._solveDepthCnt += 1
+                    response = self.cloudflare_v2.handle_V2_Challenge(response, **kwargs)
+                    return response
+
+            # Check for Cloudflare v1 challenges (if not disabled)
+            if not self.disableCloudflareV1:
+                # Check if Cloudflare v1 anti-bot is on
+                if self.cloudflare_v1.is_Challenge_Request(response):
+                    # Try to solve the challenge and send it back
+                    self._solveDepthCnt += 1
+                    response = self.cloudflare_v1.Challenge_Response(response, **kwargs)
+                    return response
+
+            # Reset solve depth counter if no challenge was detected
+            if not response.is_redirect and response.status_code not in [429, 503]:
+                self._solveDepthCnt = 0
+
+            # Handle 403 errors with automatic session refresh
+            if response.status_code == 403:
                 self.last_403_time = time.time()
 
-                if self.debug:
-                    print(f'🛡️ Received 403 error, attempting session refresh (attempt {self._403_retry_count}/{self.max_403_retries})')
-
-                # Try to refresh the session and retry the request
-                if self._refresh_session(url):
-                    if self.debug:
-                        print('🔄 Session refreshed successfully, retrying original request...')
-
-                    # Mark that we're in a retry to prevent retry count reset
-                    self._in_403_retry = True
-                    try:
-                        # Retry the original request
-                        retry_response = self.request(method, url, *args, **kwargs)
-
-                        # If retry was successful, reset retry count and return
-                        if retry_response.status_code == 200:
-                            self._403_retry_count = 0
-                            if self.debug:
-                                print('✅ 403 retry successful, request completed')
-
-                        return retry_response
-                    finally:
-                        # Always clear the retry flag
-                        if hasattr(self, '_in_403_retry'):
-                            delattr(self, '_in_403_retry')
-                else:
-                    if self.debug:
-                        print('❌ Session refresh failed, returning 403 response')
-            else:
-                if self.debug:
-                    print(f'❌ Max 403 retries ({self.max_403_retries}) exceeded, returning 403 response')
-
-        # Decrement concurrent request counter
-        if self.current_concurrent_requests > 0:
-            self.current_concurrent_requests -= 1
-
-        return response
+            return response
+        finally:
+            # Decrement concurrent request counter
+            if self.current_concurrent_requests > 0:
+                self.current_concurrent_requests -= 1
 
     # ------------------------------------------------------------------------------- #
     # Session health monitoring and refresh methods

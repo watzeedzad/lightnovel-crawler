@@ -75,7 +75,7 @@ class Scraper(TaskManager, SoupMaker):
         try:
             # OPTIMAL CONFIGURATION for preventing your specific 403 issues
             self.scraper = create_scraper(
-                # debug=True,  # Enable for monitoring (disable in production)
+                debug=bool(os.getenv("debug_mode")),  # Enable for monitoring (disable in production)
 
                 # KEY SETTINGS to prevent 403 errors
                 min_request_interval=2.0,      # CRITICAL: Prevents TLS blocking
@@ -83,8 +83,8 @@ class Scraper(TaskManager, SoupMaker):
                 rotate_tls_ciphers=True,       # CRITICAL: Avoids cipher detection
 
                 # Enhanced protection
-                auto_refresh_on_403=True,      # Auto-recover from 403 errors
-                max_403_retries=3,             # Max retry attempts
+                auto_refresh_on_403=False,     # Auto-recover from 403 errors
+                max_403_retries=0,             # Max retry attempts
                 session_refresh_interval=900,  # Session refresh time in seconds
 
                 # Optimized stealth mode
@@ -146,14 +146,14 @@ class Scraper(TaskManager, SoupMaker):
             if future:
                 e = future.exception()
                 if isinstance(e, RetryErrorGroup):
-                    logger.debug(f"{repr(e)} | Retrying...", e)
+                    logger.debug(f"{repr(e)} | Retrying...")
                     if isinstance(e, ProxyError):
                         for proxy_url in kwargs.get("proxies", {}).values():
                             remove_faulty_proxies(proxy_url)
                         kwargs["proxies"] = self.__get_proxies(_parsed.scheme, 5)
 
         @retry(
-            stop=stop_after_attempt(max_retries or 2),
+            stop=stop_after_attempt(max_retries or 0),
             wait=wait_random_exponential(multiplier=0.5, max=60),
             retry=retry_if_exception_type(RetryErrorGroup),
             after=_after_retry,
@@ -256,6 +256,7 @@ class Scraper(TaskManager, SoupMaker):
             "get",
             url,
             timeout=timeout,
+            max_retries=2,
             **kwargs,
         )
 
@@ -328,7 +329,7 @@ class Scraper(TaskManager, SoupMaker):
                 url,
                 headers=headers,
                 timeout=timeout,
-                max_retries=1,
+                max_retries=2,
                 **kwargs,
             )
             content = response.content
