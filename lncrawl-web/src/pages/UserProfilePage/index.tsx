@@ -12,15 +12,15 @@ import {
   SafetyCertificateOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { Descriptions, Divider, Flex, Grid, Space, Typography } from 'antd';
+import { Descriptions, Divider, Grid, Space, Typography } from 'antd';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { ProfileNameChangeButton } from './ProfileNameChangeButton';
 import { ProfilePasswordChangeButton } from './ProfilePasswordChangeButton';
 
 export const UserProfilePage: React.FC<any> = () => {
-  const user = useSelector(Auth.select.user)!;
   const { xs } = Grid.useBreakpoint();
+  const user = useSelector(Auth.select.user)!;
 
   const updateUser = async () => {
     const result = await axios.get<User>(`/api/auth/me`);
@@ -38,7 +38,7 @@ export const UserProfilePage: React.FC<any> = () => {
         column={1}
         size="middle"
         layout={xs ? 'vertical' : 'horizontal'}
-        labelStyle={{ width: 150, fontWeight: 500 }}
+        styles={{ label: { width: 150, fontWeight: 500 } }}
       >
         <Descriptions.Item
           label={
@@ -50,7 +50,8 @@ export const UserProfilePage: React.FC<any> = () => {
           <Space>
             <UserAvatar user={user} size={32} />
             <Typography.Text>{user.name}</Typography.Text>
-            <ProfileNameChangeButton user={user} onDone={updateUser} />
+            <Divider type="vertical" />
+            <ProfileNameChangeButton user={user} onChange={updateUser} />
           </Space>
         </Descriptions.Item>
 
@@ -91,12 +92,11 @@ export const UserProfilePage: React.FC<any> = () => {
             </Space>
           }
         >
-          <Flex wrap gap={10}>
-            <Typography.Text>{formatDate(user.created_at)}</Typography.Text>
-            <Typography.Text type="secondary">
-              {formatFromNow(user.created_at)}
-            </Typography.Text>
-          </Flex>
+          <Typography.Text>{formatDate(user.created_at)}</Typography.Text>
+          <Divider type="vertical" />
+          <Typography.Text type="secondary">
+            {formatFromNow(user.created_at)}
+          </Typography.Text>
         </Descriptions.Item>
 
         <Descriptions.Item
