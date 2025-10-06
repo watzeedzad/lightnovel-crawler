@@ -7,7 +7,7 @@ import lxml.etree
 import lxml.html
 
 from ..context import ServerContext
-from ..emails import otp_template, job_template
+from ..emails import otp_template, job_template, repass_template
 from ..exceptions import AppErrors
 from ..models.job import JobDetail, RunState
 
@@ -67,6 +67,11 @@ class MailService:
     def send_otp(self, email: str, otp: str):
         subject = f'OTP ({otp})'
         body = otp_template().render(otp=otp)
+        self.send(email, subject, body)
+
+    def send_reset_password_link(self, email: str, link: str):
+        subject = 'Reset Password'
+        body = repass_template().render(link=link)
         self.send(email, subject, body)
 
     def send_job_success(self, email: str, detail: JobDetail):

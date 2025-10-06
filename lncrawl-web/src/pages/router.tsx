@@ -2,7 +2,7 @@ import { MainLayout } from '@/components/Layout';
 import { Navigate, type RouteObject } from 'react-router-dom';
 
 import { JobDetailsPage } from './JobDetails';
-import { JobListPage } from './JobList';
+import { MainPage } from './MainPage';
 import { LoginPage } from './Login';
 import { NovelDetailsPage } from './NovelDetails';
 import { NovelListPage } from './NovelList';
@@ -12,6 +12,8 @@ import { SupportedSourcesPage } from './SupportedSources';
 import { UserDetailsPage } from './UserDetails';
 import { UserListPage } from './UserList';
 import { UserProfilePage } from './UserProfilePage';
+import { ForgotPasswordPage } from './ForgotPassword';
+import { ResetPasswordPage } from './ResetPassword';
 
 export const AUTH_ROUTES: RouteObject[] = [
   {
@@ -29,6 +31,14 @@ export const AUTH_ROUTES: RouteObject[] = [
         path: '/signup',
         element: <SignupPage />,
       },
+      {
+        path: '/forgot-password',
+        element: <ForgotPasswordPage />,
+      },
+      {
+        path: '/reset-password',
+        element: <ResetPasswordPage />,
+      },
     ],
   },
 ];
@@ -40,7 +50,7 @@ export const USER_ROUTES: RouteObject[] = [
     children: [
       {
         path: '',
-        element: <JobListPage />,
+        element: <MainPage />,
       },
       {
         path: 'profile',

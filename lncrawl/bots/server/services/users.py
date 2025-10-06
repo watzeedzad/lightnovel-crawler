@@ -10,8 +10,9 @@ from sqlmodel import and_, asc, func, or_, select
 from ..context import ServerContext
 from ..exceptions import AppErrors
 from ..models.pagination import Paginated
-from ..models.user import (CreateRequest, LoginRequest, UpdateRequest, User,
-                           UserRole, UserTier, VerifiedEmail, PasswordUpdateRequest)
+from ..models.user import (CreateRequest, LoginRequest, PasswordUpdateRequest,
+                           UpdateRequest, User, UserRole, UserTier,
+                           VerifiedEmail)
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +76,16 @@ class UserService:
         except Exception as e:
             raise AppErrors.unauthorized from e
 
-    def generate_token(self, user: User) -> str:
+    def generate_token(
+        self,
+        user: User,
+        expiry_minutes: Optional[int] = None,
+    ) -> str:
         payload = {
             'uid': user.id,
             'scopes': [user.role, user.tier],
         }
-        return self.encode_token(payload)
+        return self.encode_token(payload, expiry_minutes)
 
     def verify_token(self, token: str, required_scopes: List[str]) -> User:
         payload = self.decode_token(token)
@@ -220,6 +225,16 @@ class UserService:
             verified = sess.get(VerifiedEmail, email)
             return bool(verified)
 
+    def set_verified(self, email: str) -> bool:
+        with self._db.session() as sess:
+            verified = sess.get(VerifiedEmail, email)
+            if verified:
+                return True
+            entry = VerifiedEmail(email=email)
+            sess.add(entry)
+            sess.commit()
+            return True
+
     def send_otp(self, email: str):
         with self._db.session() as sess:
             verified = sess.get(VerifiedEmail, email)
@@ -248,3 +263,19 @@ class UserService:
             sess.add(entry)
             sess.commit()
             return True
+
+    def send_password_reset_link(self, email: str) -> bool:
+        with self._db.session() as sess:
+            q = select(User).where(User.email == email)
+            user = sess.exec(q).first()
+            if not user:
+                raise AppErrors.no_such_user
+            if not user.is_active:
+                raise AppErrors.inactive_user
+            token = self.generate_token(user, 5)
+
+        base_url = self._ctx.config.server.base_url
+        link = f'{base_url}/reset-password?token={token}&email={user.email}'
+
+        self._ctx.mail.send_reset_password_link(email, link)
+        return True

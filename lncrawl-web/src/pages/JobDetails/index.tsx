@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArtifactListCard } from '../../components/ArtifactList/ArtifactListCard';
 import { NovelDetailsCard } from '../NovelDetails/NovelDetailsCard';
-import { UserDetailsCard } from '../UserDetails/UserDetailsCard';
+import { UserDetailsCard } from './UserDetailsCard';
 import { JobDetailsCard } from './JobDetailsCard';
 
 export const JobDetailsPage: React.FC<any> = () => {

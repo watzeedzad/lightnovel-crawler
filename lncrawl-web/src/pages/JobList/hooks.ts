@@ -13,7 +13,7 @@ interface SearchParams {
   status?: string;
 }
 
-export function useJobList(autoRefresh: boolean = true) {
+export function useJobList(autoRefresh: boolean = true, customUserId?: string) {
   const isAdmin = useSelector(Auth.select.isAdmin);
   const currentUser = useSelector(Auth.select.user);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,7 +25,7 @@ export function useJobList(autoRefresh: boolean = true) {
   const [total, setTotal] = useState(0);
   const [jobs, setJobs] = useState<Job[]>([]);
 
-  const perPage = 15;
+  const perPage = 10;
   const currentPage = useMemo(
     () => parseInt(searchParams.get('page') || '1', 10),
     [searchParams]
@@ -70,11 +70,19 @@ export function useJobList(autoRefresh: boolean = true) {
 
   useEffect(() => {
     const tid = setTimeout(() => {
-      const userId = isAdmin ? undefined : currentUser?.id;
+      const userId = isAdmin ? customUserId : currentUser?.id;
       fetchJobs(currentPage, perPage, userId, status);
     }, 50);
     return () => clearTimeout(tid);
-  }, [currentUser?.id, isAdmin, currentPage, status, perPage, refreshId]);
+  }, [
+    customUserId,
+    currentUser?.id,
+    isAdmin,
+    currentPage,
+    status,
+    perPage,
+    refreshId,
+  ]);
 
   const hasIncompleteJobs = useMemo(() => {
     if (error) return false;
