@@ -139,10 +139,7 @@ class JobService:
 
     def get_artifacts(self, job_id: str) -> List[Artifact]:
         with self._db.session() as sess:
-            job = sess.get(Job, job_id)
-            if not job:
-                raise AppErrors.no_such_job
-            q = select(Artifact).where(Artifact.novel_id == job.novel_id)
+            q = select(Artifact).where(Artifact.job_id == job_id)
             return list(sess.exec(q).all())
 
     def get_novel(self, job_id: str) -> Novel:

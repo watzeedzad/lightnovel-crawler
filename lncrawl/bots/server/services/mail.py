@@ -95,6 +95,9 @@ class MailService:
             } for item in (detail.artifacts or [])
         ]
 
+        if len(novel_synopsis) > 300:
+            novel_synopsis = f'{novel_synopsis[:300]}...'
+
         body = job_template().render(
             job_url=job_url,
             artifacts=artifacts,
