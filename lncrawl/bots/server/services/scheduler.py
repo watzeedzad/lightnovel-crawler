@@ -55,16 +55,18 @@ class JobScheduler:
     def run(self, signal=Event()):
         logger.info("Scheduler started")
         pending_restart = False
+        cfg = self.ctx.config.app
+        reset_interval = cfg.scheduler_reset_interval * 1000
         try:
             while not signal.is_set():
-                signal.wait(self.ctx.config.app.runner_cooldown)
+                signal.wait(cfg.runner_cooldown)
                 if signal.is_set():
                     return
                 self.__free()
                 self.__add_cleaner(signal)
                 if len(self.threads) < CONCURRENCY:
                     self.__add_job(signal)
-                if current_timestamp() - self.start_ts > 6 * 3600 * 1000:
+                if current_timestamp() - self.start_ts > reset_interval:
                     pending_restart = True
                     self.stop()
         except KeyboardInterrupt:
