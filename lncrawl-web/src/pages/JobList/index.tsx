@@ -8,12 +8,14 @@ import {
   Spin,
   Typography,
 } from 'antd';
-import { JobListItemCard } from './JobListItemCard';
-import { RequestNovelCard } from './RequestNovelCard';
 import { useJobList } from './hooks';
 import { JobFilterBox } from './JobFilterBox';
+import { JobListItemCard } from './JobListItemCard';
 
-export const JobListPage: React.FC<any> = () => {
+export const JobListPage: React.FC<{
+  userId?: string;
+  disableFilters?: boolean;
+}> = ({ userId, disableFilters }) => {
   const {
     currentPage,
     error,
@@ -24,7 +26,7 @@ export const JobListPage: React.FC<any> = () => {
     status,
     refresh,
     updateParams,
-  } = useJobList(true);
+  } = useJobList(true, userId);
 
   if (loading) {
     return (
@@ -49,12 +51,14 @@ export const JobListPage: React.FC<any> = () => {
 
   return (
     <>
-      <RequestNovelCard />
-      <Divider />
       <Typography.Title level={2}>🛠 Job List</Typography.Title>
-      <Divider size="small" />
-      <JobFilterBox status={status} updateParams={updateParams} />
-      <Divider size="small" />
+      {!disableFilters && (
+        <>
+          <Divider size="small" />
+          <JobFilterBox status={status} updateParams={updateParams} />
+          <Divider size="small" />
+        </>
+      )}
       <List
         itemLayout="horizontal"
         dataSource={jobs}

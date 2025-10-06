@@ -1,13 +1,9 @@
-import { store } from '@/store';
-import { Auth } from '@/store/_auth';
 import { stringifyError } from '@/utils/errors';
-import { LoginOutlined } from '@ant-design/icons';
 import {
   Alert,
   Avatar,
   Button,
   Card,
-  Divider,
   Flex,
   Form,
   Input,
@@ -17,25 +13,41 @@ import {
 } from 'antd';
 import FormItem from 'antd/es/form/FormItem';
 import axios from 'axios';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
-export const LoginPage: React.FC<any> = () => {
+export const ResetPasswordPage: React.FC<any> = () => {
+  const navigate = useNavigate();
+  const [search] = useSearchParams();
+
+  const token = useMemo(() => search.get('token'), [search]);
+  const email = useMemo(() => search.get('email'), [search]);
+
   const [form] = Form.useForm();
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState<boolean>(false);
 
-  const handleLogin = async (data: any) => {
+  const sendResetLink = async (data: any) => {
+    if (!token) return;
     setLoading(true);
     setError(undefined);
     try {
-      const result = await axios.post(`/api/auth/login`, data);
-      store.dispatch(Auth.action.setAuth(result.data));
+      await axios.post(`/api/auth/reset-password-with-token`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      navigate('/login');
     } catch (err) {
       setError(stringifyError(err, 'Oops! Something went wrong.'));
     } finally {
       setLoading(false);
     }
   };
+
+  if (!token) {
+    return <Navigate to="/forgot-password" />;
+  }
 
   return (
     <Layout
@@ -75,34 +87,33 @@ export const LoginPage: React.FC<any> = () => {
           >
             <Form
               form={form}
-              onFinish={handleLogin}
+              onFinish={sendResetLink}
               size="large"
               layout="vertical"
               labelCol={{ style: { padding: 0 } }}
             >
-              <Form.Item
-                name="email"
-                label="Email"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="Enter email" autoComplete="current-user" />
-              </Form.Item>
-              <Form.Item
-                name={'password'}
-                label="Password"
-                rules={[{ required: true }]}
-              >
-                <Input.Password
-                  placeholder="Enter password"
-                  autoComplete="current-password"
+              <Form.Item name="email" label="Email" initialValue={email}>
+                <Input
+                  disabled
+                  autoComplete="email"
+                  placeholder="Enter email"
                 />
               </Form.Item>
 
-              <Flex justify="end">
-                <Typography.Link href="/forgot-password">
-                  Forgot password?
-                </Typography.Link>
-              </Flex>
+              <Form.Item
+                name={'password'}
+                label="Password"
+                rules={[
+                  { required: true, message: 'Please enter a password' },
+                  { min: 6, message: 'Password must be at least 6 characters' },
+                ]}
+                hasFeedback
+              >
+                <Input.Password
+                  placeholder="New password"
+                  autoComplete="new-password"
+                />
+              </Form.Item>
 
               {Boolean(error) && (
                 <Alert
@@ -120,20 +131,10 @@ export const LoginPage: React.FC<any> = () => {
                   type="primary"
                   htmlType="submit"
                   loading={loading}
-                  disabled={loading}
-                  icon={<LoginOutlined />}
-                  children={'Login'}
+                  children={'Reset Password'}
                 />
               </FormItem>
             </Form>
-
-            <Divider />
-
-            <Flex justify="center">
-              <Typography.Link href="/signup">
-                Create new account
-              </Typography.Link>
-            </Flex>
           </Card>
         </Flex>
       </Layout.Content>

@@ -65,3 +65,11 @@ class PasswordUpdateRequest(BaseModel):
 
 class NameUpdateRequest(BaseModel):
     name: str = Field(nullable=False, description="Full name")
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr = Field(description="User Email")
+
+
+class ResetPasswordRequest(BaseModel):
+    password: Optional[str] = Field(default=None, description="User password")

@@ -12,14 +12,17 @@ import {
   Select,
   Space,
   message,
+  type ButtonProps,
 } from 'antd';
 import axios from 'axios';
 import { useState } from 'react';
 
-export const UserEditButton: React.FC<{
-  user: User;
-  onChange?: () => any;
-}> = ({ user, onChange }) => {
+export const UserEditButton: React.FC<
+  {
+    user: User;
+    onChange?: () => any;
+  } & ButtonProps
+> = ({ user, onChange, ...buttonProps }) => {
   const [messageApi, contextHolder] = message.useMessage();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -63,7 +66,11 @@ export const UserEditButton: React.FC<{
     <>
       {contextHolder}
 
-      <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
+      <Button
+        icon={<EditOutlined />}
+        {...buttonProps}
+        onClick={() => setEditOpen(true)}
+      >
         Edit User
       </Button>
 

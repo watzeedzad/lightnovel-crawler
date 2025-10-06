@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Body, Depends, Form, Security
 
 from ..context import ServerContext
-from ..models.user import (CreateRequest, LoginRequest, LoginResponse,
-                           NameUpdateRequest, PasswordUpdateRequest,
+from ..models.user import (CreateRequest, ForgotPasswordRequest, LoginRequest,
+                           LoginResponse, NameUpdateRequest,
+                           PasswordUpdateRequest, ResetPasswordRequest,
                            SignupRequest, TokenResponse, UpdateRequest, User)
 from ..security import ensure_user
 
@@ -75,6 +76,26 @@ def self_password_update(
     body: PasswordUpdateRequest = Body(description='The update request'),
 ) -> bool:
     return ctx.users.change_password(user, body)
+
+
+@router.post('/send-password-reset-link', summary='Send reset password link to email')
+def send_password_reset_link(
+    ctx: ServerContext = Depends(),
+    body: ForgotPasswordRequest = Body(description='The request body'),
+) -> bool:
+    return ctx.users.send_password_reset_link(body.email)
+
+
+@router.post('/reset-password-with-token', summary='Verify token and change password')
+def reset_password_with_token(
+    ctx: ServerContext = Depends(),
+    user: User = Security(ensure_user),
+    body: ResetPasswordRequest = Body(description='The request body'),
+) -> bool:
+    request = UpdateRequest(password=body.password)
+    updated = ctx.users.update(user.id, request)
+    is_verified = ctx.users.set_verified(user.email)
+    return updated and is_verified
 
 
 @router.post('/me/send-otp', summary='Send OTP to current user email for verification')

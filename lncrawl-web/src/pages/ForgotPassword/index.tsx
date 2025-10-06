@@ -1,7 +1,4 @@
-import { store } from '@/store';
-import { Auth } from '@/store/_auth';
 import { stringifyError } from '@/utils/errors';
-import { LoginOutlined } from '@ant-design/icons';
 import {
   Alert,
   Avatar,
@@ -19,17 +16,20 @@ import FormItem from 'antd/es/form/FormItem';
 import axios from 'axios';
 import { useState } from 'react';
 
-export const LoginPage: React.FC<any> = () => {
+export const ForgotPasswordPage: React.FC<any> = () => {
   const [form] = Form.useForm();
   const [error, setError] = useState<string>();
+  const [success, setSuccess] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const handleLogin = async (data: any) => {
+  const sendResetLink = async (data: any) => {
+    if (success) return;
     setLoading(true);
+    setSuccess(false);
     setError(undefined);
     try {
-      const result = await axios.post(`/api/auth/login`, data);
-      store.dispatch(Auth.action.setAuth(result.data));
+      await axios.post(`/api/auth/send-password-reset-link`, data);
+      setSuccess(true);
     } catch (err) {
       setError(stringifyError(err, 'Oops! Something went wrong.'));
     } finally {
@@ -75,7 +75,7 @@ export const LoginPage: React.FC<any> = () => {
           >
             <Form
               form={form}
-              onFinish={handleLogin}
+              onFinish={sendResetLink}
               size="large"
               layout="vertical"
               labelCol={{ style: { padding: 0 } }}
@@ -85,26 +85,14 @@ export const LoginPage: React.FC<any> = () => {
                 label="Email"
                 rules={[{ required: true }]}
               >
-                <Input placeholder="Enter email" autoComplete="current-user" />
-              </Form.Item>
-              <Form.Item
-                name={'password'}
-                label="Password"
-                rules={[{ required: true }]}
-              >
-                <Input.Password
-                  placeholder="Enter password"
-                  autoComplete="current-password"
+                <Input
+                  placeholder="Enter email"
+                  autoComplete="current-user"
+                  disabled={success}
                 />
               </Form.Item>
 
-              <Flex justify="end">
-                <Typography.Link href="/forgot-password">
-                  Forgot password?
-                </Typography.Link>
-              </Flex>
-
-              {Boolean(error) && (
+              {Boolean(error) ? (
                 <Alert
                   type="warning"
                   showIcon
@@ -112,19 +100,32 @@ export const LoginPage: React.FC<any> = () => {
                   closable
                   onClose={() => setError('')}
                 />
-              )}
-
-              <FormItem style={{ marginTop: '20px' }}>
-                <Button
-                  block
-                  type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  disabled={loading}
-                  icon={<LoginOutlined />}
-                  children={'Login'}
+              ) : success ? (
+                <Alert
+                  type="success"
+                  showIcon
+                  message={'Please check your email for a password reset link'}
                 />
-              </FormItem>
+              ) : null}
+
+              {!success ? (
+                <FormItem style={{ marginTop: '20px' }}>
+                  <Button
+                    block
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    disabled={loading}
+                    children={'Send Reset Link'}
+                  />
+                </FormItem>
+              ) : (
+                <Flex justify="center" style={{ marginTop: 20 }}>
+                  <Typography.Link href="/forgot-password">
+                    I have not receive any link
+                  </Typography.Link>
+                </Flex>
+              )}
             </Form>
 
             <Divider />

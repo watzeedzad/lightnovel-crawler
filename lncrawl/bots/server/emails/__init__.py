@@ -22,3 +22,8 @@ def otp_template():
 @lru_cache
 def job_template():
     return get_jinja2_env().get_template("job.jinja2")
+
+
+@lru_cache
+def repass_template():
+    return get_jinja2_env().get_template("repass.jinja2")
