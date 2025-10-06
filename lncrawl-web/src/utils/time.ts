@@ -44,6 +44,10 @@ export function formatDate(value?: MomentInput) {
   return moment(value).format('lll');
 }
 
+export function formatFromNow(value?: MomentInput) {
+  return moment(value).fromNow();
+}
+
 export function calculateRemaining(started: number, progress: number): string {
   const remaining = 100 - progress;
   const delta = Date.now() - started;

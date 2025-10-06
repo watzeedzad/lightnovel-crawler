@@ -22,6 +22,7 @@ class AppErrors:
     no_such_user = AppError(404, "No such user")
     inactive_user = AppError(403, 'User is inactive')
     user_exists = AppError(409, "User already exists")
+    wrong_password = AppError(401, 'Wrong password')
     can_not_delete_self = AppError(403, 'You are not allowed to delete your own account')
 
     no_such_job = AppError(404, "No such job")

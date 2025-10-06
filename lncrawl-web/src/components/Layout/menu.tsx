@@ -10,9 +10,9 @@ import { UserInfoCard } from './UserInfo';
 
 export const buildMenu = (isAdmin: boolean): MenuProps['items'] => [
   {
-    key: '/me',
-    disabled: true,
+    key: '/profile',
     style: {
+      background: 'none',
       height: 'fit-content',
     },
     label: <UserInfoCard />,

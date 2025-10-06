@@ -40,6 +40,9 @@ export const AuthSlice = createSlice({
       state.tokenExpiresAt = 1000 * parseJwt(state.token).exp;
       axios.defaults.headers.common.Authorization = `Bearer ${state.token}`;
     },
+    setUser(state, action: PayloadAction<User>) {
+      state.user = action.payload;
+    },
     clearAuth(state) {
       state.user = null;
       state.token = null;
