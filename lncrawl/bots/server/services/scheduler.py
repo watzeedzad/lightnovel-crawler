@@ -54,7 +54,6 @@ class JobScheduler:
 
     def run(self, signal=Event()):
         logger.info("Scheduler started")
-        pending_restart = False
         try:
             while not signal.is_set():
                 signal.wait(self.ctx.config.app.runner_cooldown)
@@ -64,15 +63,10 @@ class JobScheduler:
                 self.__add_cleaner(signal)
                 if len(self.threads) < CONCURRENCY:
                     self.__add_job(signal)
-                if current_timestamp() - self.start_ts > 6 * 3600 * 1000:
-                    pending_restart = True
-                    self.stop()
         except KeyboardInterrupt:
             signal.set()
         finally:
             logger.info("Scheduler stoppped")
-            if pending_restart:
-                self.start()
 
     def __free(self):
         logger.debug("Waiting for queue to be free")
