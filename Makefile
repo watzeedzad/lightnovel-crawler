@@ -5,7 +5,7 @@ ifeq ($(OS),Windows_NT)
 	PY := .venv/Scripts/python
 	PIP := .venv/Scripts/pip
 	FLAKE8 := .venv/Scripts/flake8
-	NVM := nvm exec
+# 	NVM :=
 else
 	PYTHON := python3
 	PY := .venv/bin/python
